@@ -134,7 +134,6 @@ class CutOut(object):
 
 class ToTensor(object):
     def __call__(self, sample):
-
         image, mask = sample
         image = np.transpose(image,(2,0,1))
         image = image.astype(np.int32)

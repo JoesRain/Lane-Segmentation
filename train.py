@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug,CutOut
 from models.deeplabv3p import Res_Deeplab
 from tqdm import tqdm
-from torchvision import transforms
+# from torchvision import transforms
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
@@ -108,11 +108,11 @@ def evaluate_model(epoch,model,dev_loader, history=None):
 
 def main():
     BATCH_SIZE = 2
-    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),                                                                ScaleAug(), CutOut(), ToTensor()]))
+    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
+                                                                       ScaleAug(), CutOut(), ToTensor()]))
+    ScaleAug(), CutOut(), ToTensor()]))
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                        ScaleAug(), CutOut(), ToTensor()]))
-    # test_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
-
     # Create data generators - they will produce batches
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
