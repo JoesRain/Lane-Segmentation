@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from torch.nn import init
 import numpy as np
 affine_par = True
 
@@ -91,8 +92,9 @@ class ResNet(nn.Module):
         self.layer5 = self._make_pred_layer(Classifier_Module, [6,12,18,24],[6,12,18,24],NoLabels)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
                 m.weight.data.normal_(0, 0.01)
+                init.kaiming_normal_(m.weight)
             elif isinstance(m, nn.BatchNorm2d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
