@@ -156,7 +156,7 @@ class MS_Deeplab(nn.Module):
         return out
 
 def Res_Deeplab(NoLabels=21):
-    model_res = ResNet()
+    model_res = ResNet(Bottleneck,[3, 4, 23, 3],NoLabels)
     summary(model_res,(3,256,256))
     model_deep = MS_Deeplab(Bottleneck,NoLabels)
     summary(model_deep, (3, 512, 512))
