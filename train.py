@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug,CutOut
 from models.deeplabv3p import Res_Deeplab
 from tqdm import tqdm
-# from torchvision import transforms
+from torchvision import transforms
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
