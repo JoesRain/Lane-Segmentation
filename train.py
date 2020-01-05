@@ -108,7 +108,7 @@ def evaluate_model(epoch,model,dev_loader, history=None):
 
 def main():
     BATCH_SIZE = 2
-    train_dataset = LaneDataset("train.csv", transform=transforms.Compose(ToTensor()]))
+    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ToTensor()]))
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
     # Create data generators - they will produce batches
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
