@@ -6,9 +6,7 @@ import os
 import pandas as pd
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-import shutil
 import numpy as np
-import cv2
 
 def encode_labels(color_mask):
     encode_mask = np.zeros((color_mask.shape[0], color_mask.shape[1]))
@@ -55,8 +53,7 @@ path = "/root/private/yanzx/data/"
 train_data_path = path + "/Image_Data"
 test_data_path = path + "/ColorImage"
 train_label_path = path + "/Image_Label"
-save_path = "/root/private/yanzx/Lane-Segmentation-Solution-For-BaiduAI-Autonomous-Driving-Competi
-tion-master/data_list"
+save_path = "/root/private/yanzx/Lane-Segmentation-Solution-For-BaiduAI-Autonomous-Driving-Competition-master/data_list"
 train_csv = save_path + "/train.csv"
 val_csv = save_path + "/val.csv"
 test_csv = save_path + "/test.csv"

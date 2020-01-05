@@ -15,48 +15,43 @@ def conv3x3(in_planes, out_planes, stride=1):
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=1, bias=False)
 
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes, affine = affine_par)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes, affine = affine_par)
-        self.downsample = downsample
-        self.stride = stride
-
+class ResBlock(nn.Module):
+    def __init__(self, in_ch,out_ch, kernel_size=3, padding=1, stride=1):
+        super(ResBlock, self).__init__()
+        self.bn1 = nn.BatchNorm2d(in_ch)
+        self.relu1 = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, padding=padding, stride=stride)
     def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
+        out = self.conv1(self.relu1(self.bn1(x)))
         return out
 
 
 class Bottleneck(nn.Module):
     expansion = 4
 
+    def __init__(self, in_chans, out_chans):
+        super(Bottleneck, self).__init__()
+        assert out_chans % 4 == 0
+        self.block1 = ResBlock(in_chans, int(out_chans / 4), kernel_size=1, padding=0)
+        self.block2 = ResBlock(int(out_chans / 4), int(out_chans / 4), kernel_size=3, padding=1)
+        self.block3 = ResBlock(int(out_chans / 4), out_chans, kernel_size=1, padding=0)
+
+    def forward(self, x):
+        identity = x
+        out = self.block1(x)
+        out = self.block2(out)
+        out = self.block3(out)
+        out += identity
+        return out
+
+class Bottleneck(nn.Module):
+    expansion = 4
     def __init__(self, inplanes, planes, stride=1,  dilation_ = 1, downsample=None):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False) # change
         self.bn1 = nn.BatchNorm2d(planes,affine = affine_par)
     for i in self.bn1.parameters():
-            i.requires_grad = False
+        i.requires_grad = False
         padding = 1
         if dilation_ == 2:
         padding = 2
@@ -74,9 +69,6 @@ class Bottleneck(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
-
-
-
     def forward(self, x):
         residual = x
 
@@ -110,7 +102,6 @@ class Classifier_Module(nn.Module):
         for m in self.conv2d_list:
             m.weight.data.normal_(0, 0.01)
 
-
     def forward(self, x):
 	out = self.conv2d_list[0](x)
 	for i in range(len(self.conv2d_list)-1):
@@ -132,7 +123,7 @@ class ResNet(nn.Module):
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation__ = 2)
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation__ = 4)
-	self.layer5 = self._make_pred_layer(Classifier_Module, [6,12,18,24],[6,12,18,24],NoLabels)
+	    self.layer5 = self._make_pred_layer(Classifier_Module, [6,12,18,24],[6,12,18,24],NoLabels)
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

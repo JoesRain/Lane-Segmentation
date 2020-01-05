@@ -56,6 +56,7 @@ class MyUNet(nn.Module):
         self.up2 = up(512, 256)
         self.up3 = up(256, 128)
         self.up4 = up(128, 64)
+
     def forward(self, x):
         x1 = self.mp(self.conv0(x))
         x2 = self.mp(self.conv1(x1))

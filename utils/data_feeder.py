@@ -5,25 +5,25 @@
 import os
 import cv2
 import numpy as np
-from paddle.fluid import core
+# from paddle.fluid import core
 from utils.process_labels import encode_labels, verify_labels
 from utils.image_process import crop_resize_data, crop_val_resize_data
 
-# Feed Data into Tensor
-def get_feeder_data(data, place, for_test=False):
-    feed_dict = {}
-    image_t = core.LoDTensor()
-    image_t.set(data[0], place)
-    feed_dict["image"] = image_t
-
-    # if not test, feed label also
-    # Otherwise, only feed image
-    if not for_test:
-        labels_t = core.LoDTensor()
-        labels_t.set(data[1], place)
-        feed_dict["label"] = labels_t
-
-    return feed_dict
+# # Feed Data into Tensor
+# def get_feeder_data(data, place, for_test=False):
+#     feed_dict = {}
+#     image_t = core.LoDTensor()
+#     image_t.set(data[0], place)
+#     feed_dict["image"] = image_t
+#
+#     # if not test, feed label also
+#     # Otherwise, only feed image
+#     if not for_test:
+#         labels_t = core.LoDTensor()
+#         labels_t.set(data[1], place)
+#         feed_dict["label"] = labels_t
+#
+#     return feed_dict
 
 # Train Images Generator
 def train_image_gen(train_list, batch_size=4, image_size=[1024, 384], crop_offset=690):
