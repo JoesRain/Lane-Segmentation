@@ -102,10 +102,10 @@ class Classifier_Module(nn.Module):
             for m in self.conv2d_list:
                 m.weight.data.normal_(0, 0.01)
 
-        def forward(self, x):
+    def forward(self, x):
         out = self.conv2d_list[0](x)
         for i in range(len(self.conv2d_list)-1):
-	    out += self.conv2d_list[i+1](x)
+        out += self.conv2d_list[i+1](x)
         return out
 
 class ResNet(nn.Module):
@@ -164,8 +164,7 @@ class ResNet(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-	    x = self.layer5(x)
-
+        x = self.layer5(x)
         return x
 
 class MS_Deeplab(nn.Module):
