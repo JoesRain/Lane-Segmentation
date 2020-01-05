@@ -108,10 +108,10 @@ class ResNet(nn.Module):
         for i in downsample._modules['1'].parameters():
             i.requires_grad = False
         layers = []
-        layers.append(block(self.inplanes, planes, stride,dilation=dilation__, downsample = downsample ))
+        layers.append(block(self.inplanes, planes, stride,dilation=dilation, downsample = downsample ))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes,dilation=dilation__))
+            layers.append(block(self.inplanes, planes,dilation=dilation))
 
         return nn.Sequential(*layers)
     def _make_pred_layer(self,block, dilation_series, padding_series,NoLabels):
