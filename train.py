@@ -108,8 +108,8 @@ def evaluate_model(epoch,model,dev_loader, history=None):
 
 def main():
     BATCH_SIZE = 2
-    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),ScaleAug(), CutOut(), ToTensor()]))
-    val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ImageAug(), DeformAug(),ScaleAug(), CutOut(), ToTensor()]))
+    train_dataset = LaneDataset("train.csv", transform=transforms.Compose(ToTensor()]))
+    val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
     # Create data generators - they will produce batches
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
