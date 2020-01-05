@@ -79,6 +79,8 @@ def train_model(epoch,model,optimizer,train_loader,history=None):
     model.train()
     for batch_idx, (img_batch) in enumerate(tqdm(train_loader)):
         optimizer.zero_grad()
+        img_batch = img_batch.type(torch.FloatTensor)  # 转Float
+        img_batch = img_batch.cuda()  # 转cuda
         predict, label = model(img_batch)
         loss = create_loss(predict,label,8)
         if history is not None:
@@ -96,6 +98,8 @@ def evaluate_model(epoch,model,dev_loader, history=None):
     loss = 0
     with torch.no_grad():
         for img_batch in dev_loader:
+            img_batch = img_batch.type(torch.FloatTensor)  # 转Float
+            img_batch = img_batch.cuda()  # 转cuda
             predict, label = model(img_batch)
             loss = create_loss(predict, label, 8)
             loss += loss
