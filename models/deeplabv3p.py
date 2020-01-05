@@ -206,7 +206,7 @@ class ResNetUNet(nn.Module):
         return self.last(x)
 
 
-def res_unet():
-    res_unet = ResNetUNet(n_classes=8)
+def res_unet(n_classes):
+    res_unet = ResNetUNet(n_classes=n_classes)
     summary(res_unet, (3, 512, 512))
     return res_unet
