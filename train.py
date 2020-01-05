@@ -118,7 +118,7 @@ def main():
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     # test_loader = DataLoader(dataset=test_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     net = Res_Deeplab(8)
-    if torch.cuda.is_available()
+    if torch.cuda.is_available():
         net.cuda()
         net = torch.nn.DataParallel(net)
     optimizer = torch.optim.Adam(net.parameters(),lr=0.001)
