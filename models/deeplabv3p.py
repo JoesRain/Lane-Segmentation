@@ -54,9 +54,9 @@ class Bottleneck(nn.Module):
         i.requires_grad = False
         padding = 1
         if dilation_ == 2:
-        padding = 2
+            padding = 2
         elif dilation_ == 4:
-        padding = 4
+            padding = 4
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, # change
                                padding=padding, bias=False, dilation = dilation_)
         self.bn2 = nn.BatchNorm2d(planes,affine = affine_par)
