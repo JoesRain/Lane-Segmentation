@@ -19,12 +19,12 @@ class Bottleneck(nn.Module):
         for i in self.bn1.parameters():
             i.requires_grad = False
         padding = 1
-        if dilation_ == 2:
+        if dilation == 2:
             padding = 2
-        elif dilation_ == 4:
+        elif dilation == 4:
             padding = 4
         self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=1, # change
-                               padding=padding, bias=False, dilation = dilation_)
+                               padding=padding, bias=False, dilation = dilation)
         self.bn2 = nn.BatchNorm2d(planes,affine = affine_par)
         for i in self.bn2.parameters():
             i.requires_grad = False
@@ -86,8 +86,8 @@ class ResNet(nn.Module):
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True) # change
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation__ = 2)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation__ = 4)
+        self.layer3 = self._make_layer(block, 256, layers[2], stride=1, dilation=2)
+        self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4)
         self.layer5 = self._make_pred_layer(Classifier_Module, [6,12,18,24],[6,12,18,24],NoLabels)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -97,9 +97,9 @@ class ResNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-    def _make_layer(self, block, planes, blocks, stride=1,dilation__ = 1):
+    def _make_layer(self, block, planes, blocks, stride=1,dilation = 1):
         downsample = None
-        if stride != 1 or self.inplanes != planes * block.expansion or dilation__ == 2 or dilation__ == 4:
+        if stride != 1 or self.inplanes != planes * block.expansion or dilation == 2 or dilation == 4:
             downsample = nn.Sequential(
                 nn.Conv2d(self.inplanes, planes * block.expansion,
                           kernel_size=1, stride=stride, bias=False),
@@ -108,10 +108,10 @@ class ResNet(nn.Module):
         for i in downsample._modules['1'].parameters():
             i.requires_grad = False
         layers = []
-        layers.append(block(self.inplanes, planes, stride,dilation_=dilation__, downsample = downsample ))
+        layers.append(block(self.inplanes, planes, stride,dilation=dilation__, downsample = downsample ))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
-            layers.append(block(self.inplanes, planes,dilation_=dilation__))
+            layers.append(block(self.inplanes, planes,dilation=dilation__))
 
         return nn.Sequential(*layers)
     def _make_pred_layer(self,block, dilation_series, padding_series,NoLabels):
