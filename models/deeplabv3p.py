@@ -9,45 +9,45 @@ def outS(i):
     i = int(np.ceil((i+1)/2.0))
     i = (i+1)/2
     return i
+#
+# def conv3x3(in_planes, out_planes, stride=1):
+#     "3x3 convolution with padding"
+#     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+#                      padding=1, bias=False)
+#
+# class ResBlock(nn.Module):
+#     def __init__(self, in_ch,out_ch, kernel_size=3, padding=1, stride=1):
+#         super(ResBlock, self).__init__()
+#         self.bn1 = nn.BatchNorm2d(in_ch)
+#         self.relu1 = nn.ReLU(inplace=True)
+#         self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, padding=padding, stride=stride)
+#     def forward(self, x):
+#         out = self.conv1(self.relu1(self.bn1(x)))
+#         return out
 
-def conv3x3(in_planes, out_planes, stride=1):
-    "3x3 convolution with padding"
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
 
-class ResBlock(nn.Module):
-    def __init__(self, in_ch,out_ch, kernel_size=3, padding=1, stride=1):
-        super(ResBlock, self).__init__()
-        self.bn1 = nn.BatchNorm2d(in_ch)
-        self.relu1 = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, padding=padding, stride=stride)
-    def forward(self, x):
-        out = self.conv1(self.relu1(self.bn1(x)))
-        return out
-
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, in_chans, out_chans):
-        super(Bottleneck, self).__init__()
-        assert out_chans % 4 == 0
-        self.block1 = ResBlock(in_chans, int(out_chans / 4), kernel_size=1, padding=0)
-        self.block2 = ResBlock(int(out_chans / 4), int(out_chans / 4), kernel_size=3, padding=1)
-        self.block3 = ResBlock(int(out_chans / 4), out_chans, kernel_size=1, padding=0)
-
-    def forward(self, x):
-        identity = x
-        out = self.block1(x)
-        out = self.block2(out)
-        out = self.block3(out)
-        out += identity
-        return out
+# class Bottleneck(nn.Module):
+#     expansion = 4
+#
+#     def __init__(self, in_chans, out_chans):
+#         super(Bottleneck, self).__init__()
+#         assert out_chans % 4 == 0
+#         self.block1 = ResBlock(in_chans, int(out_chans / 4), kernel_size=1, padding=0)
+#         self.block2 = ResBlock(int(out_chans / 4), int(out_chans / 4), kernel_size=3, padding=1)
+#         self.block3 = ResBlock(int(out_chans / 4), out_chans, kernel_size=1, padding=0)
+#
+#     def forward(self, x):
+#         identity = x
+#         out = self.block1(x)
+#         out = self.block2(out)
+#         out = self.block3(out)
+#         out += identity
+#         return out
 
 class Bottleneck(nn.Module):
     expansion = 4
     def __init__(self, inplanes, planes, stride=1,  dilation_ = 1, downsample=None):
-        super(Bottleneck, self).__init__()
+        super(Bottleneck,self).__init__()
         self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, stride=stride, bias=False) # change
         self.bn1 = nn.BatchNorm2d(planes,affine = affine_par)
     for i in self.bn1.parameters():
@@ -170,17 +170,15 @@ class MS_Deeplab(nn.Module):
 
     def forward(self,x):
         input_size = x.size()[2]
-        self.interp1 = nn.UpsamplingBilinear2d(size = (  int(input_size*0.75)+1,  int(input_size*0.75)+1  ))
-        self.interp2 = nn.UpsamplingBilinear2d(size = (  int(input_size*0.5)+1,   int(input_size*0.5)+1   ))
-        self.interp3 = nn.UpsamplingBilinear2d(size = (  outS(input_size),   outS(input_size)   ))
+        self.interp1 = nn.UpsamplingBilinear2d(size=(int(input_size*0.75)+1,  int(input_size*0.75)+1))
+        self.interp2 = nn.UpsamplingBilinear2d(size=(int(input_size*0.5)+1,   int(input_size*0.5)+1))
+        self.interp3 = nn.UpsamplingBilinear2d(size=(outS(input_size),   outS(input_size)))
         out = []
         x2 = self.interp1(x)
         x3 = self.interp2(x)
-        out.append(self.Scale(x))	# for original scale
-        out.append(self.interp3(self.Scale(x2)))	# for 0.75x scale
-        out.append(self.Scale(x3))	# for 0.5x scale
-
-
+        out.append(self.Scale(x))# for original scale
+        out.append(self.interp3(self.Scale(x2)))# for 0.75x scale
+        out.append(self.Scale(x3))# for 0.5x scale
         x2Out_interp = out[1]
         x3Out_interp = self.interp3(out[2])
         temp1 = torch.max(out[0],x2Out_interp)
