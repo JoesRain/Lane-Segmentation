@@ -118,9 +118,9 @@ def main():
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     net = Res_Deeplab(8)
-    if torch.cuda.is_available():
-        net.cuda()
-        net = torch.nn.DataParallel(net)
+    # if torch.cuda.is_available():
+    #     net.cuda()
+    #     net = torch.nn.DataParallel(net)
     optimizer = torch.optim.Adam(net.parameters(),lr=0.001)
     for epoch in range(4):
         train_model(epoch,net,optimizer,train_loader)
