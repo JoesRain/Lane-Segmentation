@@ -3,6 +3,7 @@
 # Description: Train Code for Lane Segmentation Competition
 
 import numpy as np
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -107,6 +108,7 @@ def evaluate_model(epoch,model,dev_loader, history=None):
 
 def main():
     BATCH_SIZE = 2
+    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([
         ImageAug(), DeformAug(), ScaleAug(), CutOut(32,0.5), ToTensor()
     ]))
