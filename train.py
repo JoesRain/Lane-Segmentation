@@ -12,6 +12,7 @@ from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug
 from models.deeplabv3p import Res_Deeplab
 from tqdm import tqdm
 from torchvision import transforms
+from torchsummary import summary
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
@@ -119,6 +120,7 @@ def main():
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
     net = Res_Deeplab(8)
+    summary(net, (2, 3, 256, 256))
     if torch.cuda.is_available():
         net.cuda()
         net = torch.nn.DataParallel(net)
