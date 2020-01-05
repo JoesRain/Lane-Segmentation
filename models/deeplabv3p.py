@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch
 from torch.nn import init
 import numpy as np
+from torchsummary import summary
+
 affine_par = True
 
 def outS(i):
@@ -154,5 +156,8 @@ class MS_Deeplab(nn.Module):
         return out
 
 def Res_Deeplab(NoLabels=21):
-    model = MS_Deeplab(Bottleneck,NoLabels)
-    return model
+    model_res = ResNet()
+    summary(model_res,(3,256,256))
+    model_deep = MS_Deeplab(Bottleneck,NoLabels)
+    summary(model_deep, (3, 512, 512))
+    return model_deep

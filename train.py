@@ -12,7 +12,6 @@ from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug
 from models.deeplabv3p import Res_Deeplab
 from tqdm import tqdm
 from torchvision import transforms
-from torchsummary import summary
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
