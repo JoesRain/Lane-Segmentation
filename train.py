@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug,CutOut
-from models.deeplabv3p import Res_Deeplab
+from models.deeplabv3p import res_unet
 from tqdm import tqdm
 from torchvision import transforms
 
@@ -118,8 +118,7 @@ def main():
     # Create data generators - they will produce batches
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-    net = Res_Deeplab(8)
-    summary(net, (3, 256, 256))
+    net = res_unet(8)
     if torch.cuda.is_available():
         net.cuda()
         net = torch.nn.DataParallel(net)
