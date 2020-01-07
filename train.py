@@ -77,7 +77,7 @@ def create_loss(predict, label, num_classes):
 
 def train_model(epoch,model,optimizer,train_loader,history=None):
     model.train()
-    for batch_item in enumerate(tqdm(train_loader)):
+    for batch_item in tqdm(train_loader):
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=4), mask.cuda(device=4)
@@ -98,7 +98,7 @@ def evaluate_model(epoch,model,dev_loader, history=None):
     model.eval()
     loss = 0
     with torch.no_grad():
-        for batch_item in enumerate(dev_loader):
+        for batch_item in dev_loader:
             image, mask = batch_item['image'], batch_item['mask']
             if torch.cuda.is_available():
                 image, mask = image.cuda(device=4), mask.cuda(device=4)
