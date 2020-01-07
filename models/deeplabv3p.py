@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from torchsummary import summary
-
+import os
 
 def bilinear_kernel(in_channels, out_channels, kernel_size):
     factor = (kernel_size + 1) // 2
@@ -207,6 +207,7 @@ class ResNetUNet(nn.Module):
 
 
 def res_unet(n_classes):
+    os.environ["CUDA_VISIBLE_DEVICES"] = "5"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     res_unet = ResNetUNet(n_classes=n_classes)
     res_unet = res_unet.to(device)
