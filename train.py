@@ -77,12 +77,13 @@ def create_loss(predict, label, num_classes):
 
 def train_model(epoch,model,optimizer,train_loader,history=None):
     model.train()
-    for batch_idx, (img_batch) in enumerate(tqdm(train_loader)):
+    for batch_item in enumerate(tqdm(train_loader)):
+        image, mask = batch_item['image'], batch_item['mask']
+        if torch.cuda.is_available():
+            image, mask = image.cuda(device=4), mask.cuda(device=4)
         optimizer.zero_grad()
-        img_batch = img_batch.type(torch.FloatTensor)  # 转Float
-        img_batch = img_batch.cuda()  # 转cuda
-        predict, label = model(img_batch)
-        loss = create_loss(predict,label,8)
+        predict = model(image)
+        loss = create_loss(predict, mask, 8)
         if history is not None:
             history.loc[epoch + batch_idx / len(train_loader), 'train_loss'] = loss.data.cpu().numpy()
         loss.backward()
@@ -97,11 +98,13 @@ def evaluate_model(epoch,model,dev_loader, history=None):
     model.eval()
     loss = 0
     with torch.no_grad():
-        for img_batch in dev_loader:
-            img_batch = img_batch.type(torch.FloatTensor)  # 转Float
-            img_batch = img_batch.cuda()  # 转cuda
-            predict, label = model(img_batch)
-            loss = create_loss(predict, label, 8)
+        for batch_item in enumerate(dev_loader):
+            image, mask = batch_item['image'], batch_item['mask']
+            if torch.cuda.is_available():
+                image, mask = image.cuda(device=4), mask.cuda(device=4)
+            optimizer.zero_grad()
+            predict = model(image)
+            loss = create_loss(predict, mask, 8)
             loss += loss
     loss /= len(dev_loader.dataset)
 
