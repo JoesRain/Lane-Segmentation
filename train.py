@@ -75,12 +75,14 @@ def create_loss(predict, label, num_classes):
     miou = mean_iou(predict, label, num_classes)
     return torch.mean(loss), miou
 
+device_list = [5, 6]
+
 def train_model(epoch,model,optimizer,train_loader,history=None):
     model.train()
     for batch_item in tqdm(train_loader):
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
-            image, mask = image.cuda(device=4), mask.cuda(device=4)
+            image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         optimizer.zero_grad()
         predict = model(image)
         loss = create_loss(predict, mask, 8)
@@ -101,7 +103,7 @@ def evaluate_model(epoch,model,dev_loader, history=None):
         for batch_item in dev_loader:
             image, mask = batch_item['image'], batch_item['mask']
             if torch.cuda.is_available():
-                image, mask = image.cuda(device=4), mask.cuda(device=4)
+                image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
             optimizer.zero_grad()
             predict = model(image)
             loss = create_loss(predict, mask, 8)
