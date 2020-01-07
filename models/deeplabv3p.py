@@ -207,6 +207,8 @@ class ResNetUNet(nn.Module):
 
 
 def res_unet(n_classes):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     res_unet = ResNetUNet(n_classes=n_classes)
+    res_unet = res_unet.to(device)
     summary(res_unet, (3, 512, 512))
     return res_unet
