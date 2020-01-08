@@ -8,7 +8,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from utils.image_process import LaneDataset,ToTensor,ImageAug,DeformAug,ScaleAug,CutOut
+from utils.image_process import LaneDataset, ImageAug, DeformAug
+from utils.image_process import ScaleAug, CutOut, ToTensor
+from utils.loss import MySoftmaxCrossEntropyLoss
 from models.deeplabv3p import res_unet
 from tqdm import tqdm
 from torchvision import transforms
@@ -78,42 +80,77 @@ def create_loss(predict, label, num_classes):
 device_list = [5, 6]
 
 def train_model(epoch,model,optimizer,train_loader,history=None):
+    # model.train()
+    # for batch_item in tqdm(train_loader):
+    #     image, mask = batch_item['image'], batch_item['mask']
+    #     if torch.cuda.is_available():
+    #         image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
+    #     optimizer.zero_grad()
+    #     predict = model(image)
+    #     loss = create_loss(predict, mask, 8)
+    #     if history is not None:
+    #         history.loc[epoch + batch_idx / len(train_loader), 'train_loss'] = loss.data.cpu().numpy()
+    #     loss.backward()
+    #     optimizer.step()
+    #     print('Train Epoch: {} \tLR: {:.6f}\tLoss: {:.6f}'.format(
+    #     epoch,
+    #     optimizer.state_dict()['param_groups'][0]['lr'],
+    #     loss.data))
     model.train()
-    for batch_item in tqdm(train_loader):
+    total_mask_loss = 0.0
+    dataprocess = tqdm(train_loader)
+    for batch_item in dataprocess:
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         optimizer.zero_grad()
-        predict = model(image)
-        loss = create_loss(predict, mask, 8)
-        if history is not None:
-            history.loc[epoch + batch_idx / len(train_loader), 'train_loss'] = loss.data.cpu().numpy()
-        loss.backward()
+        out = model(image)
+        mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
+        total_mask_loss += mask_loss.item()
+        mask_loss.backward()
         optimizer.step()
-        print('Train Epoch: {} \tLR: {:.6f}\tLoss: {:.6f}'.format(
-        epoch,
-        optimizer.state_dict()['param_groups'][0]['lr'],
-        loss.data))
+        dataprocess.set_description_str("epoch:{}".format(epoch))
+        dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
+    print("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
 
 
 def evaluate_model(epoch,model,dev_loader, history=None):
+    # model.eval()
+    # loss = 0
+    # with torch.no_grad():
+    #     for batch_item in dev_loader:
+    #         image, mask = batch_item['image'], batch_item['mask']
+    #         if torch.cuda.is_available():
+    #             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
+    #         optimizer.zero_grad()
+    #         predict = model(image)
+    #         loss = create_loss(predict, mask, 8)
+    #         loss += loss
+    # loss /= len(dev_loader.dataset)
+    #
+    # if history is not None:
+    #     history.loc[epoch, 'dev_loss'] = loss.cpu().numpy()
+    #
+    # print('Dev loss: {:.4f}'.format(loss))
     model.eval()
-    loss = 0
-    with torch.no_grad():
-        for batch_item in dev_loader:
-            image, mask = batch_item['image'], batch_item['mask']
-            if torch.cuda.is_available():
-                image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
-            optimizer.zero_grad()
-            predict = model(image)
-            loss = create_loss(predict, mask, 8)
-            loss += loss
-    loss /= len(dev_loader.dataset)
-
-    if history is not None:
-        history.loc[epoch, 'dev_loss'] = loss.cpu().numpy()
-
-    print('Dev loss: {:.4f}'.format(loss))
+    total_mask_loss = 0.0
+    dataprocess = tqdm(dev_loader)
+    result = {"TP": {i:0 for i in range(8)}, "TA":{i:0 for i in range(8)}}
+    for batch_item in dataprocess:
+        image, mask = batch_item['image'], batch_item['mask']
+        if torch.cuda.is_available():
+            image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
+        out = model(image)
+        mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out[0], mask)
+        total_mask_loss += mask_loss.detach().item()
+        pred = torch.argmax(F.softmax(out, dim=1), dim=1)
+        result = compute_iou(pred, mask, result)
+        dataprocess.set_description_str("epoch:{}".format(epoch))
+        dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
+    print("Epoch:{}".format(epoch))
+    for i in range(8):
+        result_string = "{}: {:.4f} \n".format(i, result["TP"]/result["TA"])
+        print(result_string)
 
 def main():
     BATCH_SIZE = 2
