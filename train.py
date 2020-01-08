@@ -14,6 +14,7 @@ from utils.loss import MySoftmaxCrossEntropyLoss
 from models.deeplabv3p import res_unet
 from tqdm import tqdm
 from torchvision import transforms
+from model.deeplabv3plus import DeeplabV3Plus
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
@@ -152,9 +153,22 @@ def evaluate_model(epoch,model,dev_loader, history=None):
         result_string = "{}: {:.4f} \n".format(i, result["TP"]/result["TA"])
         print(result_string)
 
+class Config(object):
+    # model config
+    OUTPUT_STRIDE = 16
+    ASPP_OUTDIM = 256
+    SHORTCUT_DIM = 48
+    SHORTCUT_KERNEL = 1
+    NUM_CLASSES = 8
+
+    # train config
+    EPOCHS = 200
+    WEIGHT_DECAY = 1.0e-4
+    SAVE_PATH = "logs"
+    BASE_LR = 0.0006
+
 def main():
     BATCH_SIZE = 2
-    os.environ["CUDA_VISIBLE_DEVICES"] = "4"
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([
         ImageAug(), DeformAug(), ScaleAug(), CutOut(32,0.5), ToTensor()
     ]))
@@ -164,10 +178,15 @@ def main():
     # Create data generators - they will produce batches
     train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
     dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-    net = res_unet(8)
+    # net = res_unet(8)
+    # if torch.cuda.is_available():
+    #     net.cuda()
+    #     net = torch.nn.DataParallel(net)
+    lane_config = Config()
+    net = DeeplabV3Plus(lane_config)
     if torch.cuda.is_available():
-        net.cuda()
-        net = torch.nn.DataParallel(net)
+        net = net.cuda(device=device_list[0])
+        net = torch.nn.DataParallel(net, device_ids=device_list)
     optimizer = torch.optim.Adam(net.parameters(),lr=0.001)
     for epoch in range(4):
         train_model(epoch,net,optimizer,train_loader)
