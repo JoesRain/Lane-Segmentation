@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
-from models.deeplabv3p import res_unet
+# from models.deeplabv3p import res_unet
 from tqdm import tqdm
 from torchvision import transforms
 from model.deeplabv3plus import DeeplabV3Plus
