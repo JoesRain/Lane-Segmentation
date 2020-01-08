@@ -14,7 +14,7 @@ from utils.loss import MySoftmaxCrossEntropyLoss
 # from models.deeplabv3p import res_unet
 from tqdm import tqdm
 from torchvision import transforms
-from model.deeplabv3plus import DeeplabV3Plus
+from models.deeplabv3plus import DeeplabV3Plus
 
 def mean_iou(pred, target, n_classes = 8):
   ious = []
