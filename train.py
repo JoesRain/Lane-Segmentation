@@ -1,198 +1,115 @@
-# Author: Jingxiao Gu
-# Baidu Account: Seigato
-# Description: Train Code for Lane Segmentation Competition
-
-import numpy as np
-import os
+from tqdm import tqdm
 import torch
-import torch.nn as nn
+import os
+import shutil
+from utils.metric import compute_iou
 import torch.nn.functional as F
+from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
-# from models.deeplabv3p import res_unet
-from tqdm import tqdm
-from torchvision import transforms
 from model.deeplabv3plus import DeeplabV3Plus
-
-def mean_iou(pred, target, n_classes = 8):
-  ious = []
-  pred = torch.argmax(pred, axis=1)
-  pred = pred.view(-1)
-  target = target.view(-1)
-
-  for cls in torch.arange(1, n_classes):
-    pred_inds = pred == cls
-    target_inds = target == cls
-    intersection = (pred_inds[target_inds]).long().sum().data.cpu()[0]
-    union = pred_inds.long().sum().data.cpu()[0] + target_inds.long().sum().data.cpu()[0] - intersection
-    if union == 0:
-      ious.append(float('nan'))  # If there is no ground truth, do not include in evaluation
-    else:
-      ious.append(float(intersection) / float(max(union, 1)))
-  return np.mean(ious)
-
-# Get Loss Function
-no_grad_set = []
-
-class BCELoss2d(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(BCELoss2d, self).__init__()
-        self.bce_loss = nn.BCELoss(weight, size_average)
-
-    def forward(self, logits, targets):
-        probs = F.sigmoid(logits)  # 二分类问题，sigmoid等价于softmax
-        probs_flat = probs.view(-1)
-        targets_flat = targets.view(-1)
-        return self.bce_loss(probs_flat, targets_flat)
+from config import Config
 
 
-class SoftDiceLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(SoftDiceLoss, self).__init__()
-
-    def forward(self, logits, targets):
-        num = targets.size(0)
-        smooth = 1
-
-        probs = F.sigmoid(logits)
-        m1 = probs.view(num, -1)
-        m2 = targets.view(num, -1)
-        intersection = (m1 * m2)
-
-        score = 2. * (intersection.sum(1) + smooth) / (m1.sum(1) + m2.sum(1) + smooth)
-        score = 1 - score.sum() / num
-        return score
-
-def create_loss(predict, label, num_classes):
-    predict = predict.permute(0, 2, 3, 1)
-    predict = predict.view(-1, num_classes)
-    predict = torch.softmax(predict)
-    label = label.view(-1, 1)
-
-    bce_loss = BCELoss2d()(predict,label)
-    dice_loss = SoftDiceLoss()(predict,label)
-    no_grad_set.append(label.name)
-    loss = bce_loss + dice_loss
-    miou = mean_iou(predict, label, num_classes)
-    return torch.mean(loss), miou
+# os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 device_list = [5, 6]
 
-def train_model(epoch,model,optimizer,train_loader,history=None):
-    # model.train()
-    # for batch_item in tqdm(train_loader):
-    #     image, mask = batch_item['image'], batch_item['mask']
-    #     if torch.cuda.is_available():
-    #         image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
-    #     optimizer.zero_grad()
-    #     predict = model(image)
-    #     loss = create_loss(predict, mask, 8)
-    #     if history is not None:
-    #         history.loc[epoch + batch_idx / len(train_loader), 'train_loss'] = loss.data.cpu().numpy()
-    #     loss.backward()
-    #     optimizer.step()
-    #     print('Train Epoch: {} \tLR: {:.6f}\tLoss: {:.6f}'.format(
-    #     epoch,
-    #     optimizer.state_dict()['param_groups'][0]['lr'],
-    #     loss.data))
-    model.train()
+
+def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
+    net.train()
     total_mask_loss = 0.0
-    dataprocess = tqdm(train_loader)
+    dataprocess = tqdm(dataLoader)
     for batch_item in dataprocess:
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         optimizer.zero_grad()
-        out = model(image)
+        out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         total_mask_loss += mask_loss.item()
         mask_loss.backward()
         optimizer.step()
         dataprocess.set_description_str("epoch:{}".format(epoch))
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
-    print("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
+    trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
+    trainF.flush()
 
 
-def evaluate_model(epoch,model,dev_loader, history=None):
-    # model.eval()
-    # loss = 0
-    # with torch.no_grad():
-    #     for batch_item in dev_loader:
-    #         image, mask = batch_item['image'], batch_item['mask']
-    #         if torch.cuda.is_available():
-    #             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
-    #         optimizer.zero_grad()
-    #         predict = model(image)
-    #         loss = create_loss(predict, mask, 8)
-    #         loss += loss
-    # loss /= len(dev_loader.dataset)
-    #
-    # if history is not None:
-    #     history.loc[epoch, 'dev_loss'] = loss.cpu().numpy()
-    #
-    # print('Dev loss: {:.4f}'.format(loss))
-    model.eval()
+def test(net, epoch, dataLoader, testF, config):
+    net.eval()
     total_mask_loss = 0.0
-    dataprocess = tqdm(dev_loader)
+    dataprocess = tqdm(dataLoader)
     result = {"TP": {i:0 for i in range(8)}, "TA":{i:0 for i in range(8)}}
     for batch_item in dataprocess:
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
-        out = model(image)
+        out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out[0], mask)
         total_mask_loss += mask_loss.detach().item()
         pred = torch.argmax(F.softmax(out, dim=1), dim=1)
         result = compute_iou(pred, mask, result)
         dataprocess.set_description_str("epoch:{}".format(epoch))
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
-    print("Epoch:{}".format(epoch))
+    testF.write("Epoch:{}".format(epoch))
     for i in range(8):
         result_string = "{}: {:.4f} \n".format(i, result["TP"]/result["TA"])
         print(result_string)
+        testF.write(result_string)
+    testF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
+    testF.flush()
 
-class Config(object):
-    # model config
-    OUTPUT_STRIDE = 16
-    ASPP_OUTDIM = 256
-    SHORTCUT_DIM = 48
-    SHORTCUT_KERNEL = 1
-    NUM_CLASSES = 8
 
-    # train config
-    EPOCHS = 200
-    WEIGHT_DECAY = 1.0e-4
-    SAVE_PATH = "logs"
-    BASE_LR = 0.0006
+def adjust_lr(optimizer, epoch):
+    if epoch == 0:
+        lr = 1e-3
+    elif epoch == 2:
+        lr = 1e-2
+    elif epoch == 100:
+        lr = 1e-3
+    elif epoch == 150:
+        lr = 1e-4
+    else:
+        return
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
+
 
 def main():
-    BATCH_SIZE = 2
-    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([
-        ImageAug(), DeformAug(), ScaleAug(), CutOut(32,0.5), ToTensor()
-    ]))
-    val_dataset = LaneDataset("val.csv", transform=transforms.Compose([
-        ImageAug(), DeformAug(), ScaleAug(), CutOut(32,0.5), ToTensor()
-    ]))
-    # Create data generators - they will produce batches
-    train_loader = DataLoader(dataset=train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=4)
-    dev_loader = DataLoader(dataset=val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=4)
-    # net = res_unet(8)
-    # if torch.cuda.is_available():
-    #     net.cuda()
-    #     net = torch.nn.DataParallel(net)
     lane_config = Config()
+    if os.path.exists(lane_config.SAVE_PATH):
+        shutil.rmtree(lane_config.SAVE_PATH)
+    os.makedirs(lane_config.SAVE_PATH, exist_ok=True)
+    trainF = open(os.path.join(lane_config.SAVE_PATH, "train.csv"), 'w')
+    testF = open(os.path.join(lane_config.SAVE_PATH, "test.csv"), 'w')
+    kwargs = {'num_workers': 4, 'pin_memory': True} if torch.cuda.is_available() else {}
+    train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
+                                                                              ScaleAug(), CutOut(32, 0.5), ToTensor()]))
+
+    train_data_batch = DataLoader(train_dataset, batch_size=4*len(device_list), shuffle=True, drop_last=True, **kwargs)
+    val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
+
+    val_data_batch = DataLoader(val_dataset, batch_size=2*len(device_list), shuffle=False, drop_last=False, **kwargs)
     net = DeeplabV3Plus(lane_config)
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
-    optimizer = torch.optim.Adam(net.parameters(),lr=0.001)
-    for epoch in range(4):
-        train_model(epoch,net,optimizer,train_loader)
-        evaluate_model(epoch, net, optimizer, dev_loader)
-    torch.save(net.state_dict(), './model.pth')
+    # optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
+    #                             momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
+    for epoch in range(lane_config.EPOCHS):
+        # adjust_lr(optimizer, epoch)
+        train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
+        test(net, epoch, val_data_batch, testF, lane_config)
+        if epoch % 10 == 0:
+            torch.save(net, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "laneNet{}.pth".format(epoch)))
+    trainF.close()
+    testF.close()
+    torch.save(net, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "finalNet.pth"))
 
-# Main
+
 if __name__ == "__main__":
     main()

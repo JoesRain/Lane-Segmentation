@@ -35,10 +35,9 @@ class LaneDataset(Dataset):
     def __init__(self, csv_file, transform=None):
         super(LaneDataset, self).__init__()
         self.data = pd.read_csv(os.path.join(os.getcwd(), "data_list", csv_file), header=None,
-                                  names=["image",
-                                         "label"])
-        self.images = self.data["image"].values
-        self.labels = self.data["label"].values
+                                  names=["image","label"])
+        self.images = self.data["image"].values[1:]
+        self.labels = self.data["label"].values[1:]
 
         self.transform = transform
 
@@ -134,10 +133,11 @@ class CutOut(object):
 
 class ToTensor(object):
     def __call__(self, sample):
+
         image, mask = sample
         image = np.transpose(image,(2,0,1))
-        image = image.astype(np.int32)
-        mask = mask.astype(np.uint8)
+        image = image.astype(np.float32)
+        mask = mask.astype(np.long)
         return {'image': torch.from_numpy(image.copy()),
                 'mask': torch.from_numpy(mask.copy())}
 
