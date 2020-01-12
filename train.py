@@ -17,7 +17,7 @@ from config import Config
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 device_list = [2,3]
-flag = None
+flag = True
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     net.train()
