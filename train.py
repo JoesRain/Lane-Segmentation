@@ -16,7 +16,7 @@ from config import Config
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
-device_list = [0,1]
+device_list = [2,3]
 
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
@@ -86,11 +86,11 @@ def main():
     os.makedirs(lane_config.SAVE_PATH, exist_ok=True)
     trainF = open(os.path.join(lane_config.SAVE_PATH, "train.csv"), 'w')
     testF = open(os.path.join(lane_config.SAVE_PATH, "test.csv"), 'w')
-    kwargs = {'num_workers': 1, 'pin_memory': True} if torch.cuda.is_available() else {}
+    kwargs = {'num_workers': 4, 'pin_memory': True} if torch.cuda.is_available() else {}
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                               ScaleAug(), CutOut(32, 0.5), ToTensor()]))
 
-    train_data_batch = DataLoader(train_dataset, batch_size=2*len(device_list), shuffle=True, drop_last=True, **kwargs)
+    train_data_batch = DataLoader(train_dataset, batch_size=4*len(device_list), shuffle=True, drop_last=True, **kwargs)
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=2*len(device_list), shuffle=False, drop_last=False, **kwargs)
