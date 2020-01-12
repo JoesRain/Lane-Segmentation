@@ -15,7 +15,7 @@ from config import Config
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
-device_list = [5, 6]
+device_list = [3]
 
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
@@ -85,7 +85,7 @@ def main():
     os.makedirs(lane_config.SAVE_PATH, exist_ok=True)
     trainF = open(os.path.join(lane_config.SAVE_PATH, "train.csv"), 'w')
     testF = open(os.path.join(lane_config.SAVE_PATH, "test.csv"), 'w')
-    kwargs = {'num_workers': 4, 'pin_memory': True} if torch.cuda.is_available() else {}
+    kwargs = {'num_workers': 1, 'pin_memory': True} if torch.cuda.is_available() else {}
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                               ScaleAug(), CutOut(32, 0.5), ToTensor()]))
 
@@ -97,9 +97,9 @@ def main():
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
-    # optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
-    #                             momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
-    optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
+                                momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
+    # optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
     for epoch in range(lane_config.EPOCHS):
         # adjust_lr(optimizer, epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
