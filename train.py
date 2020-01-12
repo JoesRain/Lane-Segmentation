@@ -94,7 +94,7 @@ def main():
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=2*len(device_list), shuffle=False, drop_last=False, **kwargs)
-    net = DeeplabV3Plus(lane_config)
+    net = UNet(lane_config)
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
