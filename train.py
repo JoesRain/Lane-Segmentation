@@ -39,7 +39,7 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     trainF.flush()
 
 
-def test(net, epoch, dataLoader, testF, config):
+def val_epoch(net, epoch, dataLoader, testF, config):
     net.eval()
     total_mask_loss = 0.0
     dataprocess = tqdm(dataLoader)
@@ -104,7 +104,7 @@ def main():
     for epoch in range(lane_config.EPOCHS):
         # adjust_lr(optimizer, epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
-        test(net, epoch, val_data_batch, testF, lane_config)
+        val_epoch(net, epoch, val_data_batch, testF, lane_config)
         if epoch % 10 == 0:
             torch.save(net, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "laneNet{}.pth".format(epoch)))
     trainF.close()
