@@ -10,6 +10,7 @@ from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
 from model.deeplabv3plus import DeeplabV3Plus
+from model.unet import UNet
 from config import Config
 
 
@@ -89,7 +90,7 @@ def main():
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                               ScaleAug(), CutOut(32, 0.5), ToTensor()]))
 
-    train_data_batch = DataLoader(train_dataset, batch_size=4*len(device_list), shuffle=True, drop_last=True, **kwargs)
+    train_data_batch = DataLoader(train_dataset, batch_size=2*len(device_list), shuffle=True, drop_last=True, **kwargs)
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=2*len(device_list), shuffle=False, drop_last=False, **kwargs)
