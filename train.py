@@ -54,7 +54,7 @@ def test(net, epoch, dataLoader, testF, config):
         result = compute_iou(pred, mask, result)
         dataprocess.set_description_str("epoch:{}".format(epoch))
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
-    testF.write("Epoch:{}".format(epoch))
+    testF.write("Epoch:{} \n".format(epoch))
     for i in range(8):
         result_string = "{}: {:.4f} \n".format(i, result["TP"]/result["TA"])
         print(result_string)
@@ -89,10 +89,10 @@ def main():
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                               ScaleAug(), CutOut(32, 0.5), ToTensor()]))
 
-    train_data_batch = DataLoader(train_dataset, batch_size=4*len(device_list), shuffle=True, drop_last=True, **kwargs)
+    train_data_batch = DataLoader(train_dataset, batch_size=8*len(device_list), shuffle=True, drop_last=True, **kwargs)
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
-    val_data_batch = DataLoader(val_dataset, batch_size=2*len(device_list), shuffle=False, drop_last=False, **kwargs)
+    val_data_batch = DataLoader(val_dataset, batch_size=4*len(device_list), shuffle=False, drop_last=False, **kwargs)
     net = DeeplabV3Plus(lane_config)
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
@@ -104,11 +104,11 @@ def main():
         # adjust_lr(optimizer, epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
-        if epoch % 10 == 0:
-            torch.save(net, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "laneNet{}.pth".format(epoch)))
+        if epoch % 2 == 0:
+            torch.save({'state_dict': net.state_dict()}, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "laneNet{}.pth.tar".format(epoch)))
     trainF.close()
     testF.close()
-    torch.save(net, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "finalNet.pth"))
+    torch.save({'state_dict': net.state_dict()}, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "finalNet.pth.tar"))
 
 
 if __name__ == "__main__":
