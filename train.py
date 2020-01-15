@@ -89,7 +89,7 @@ def main():
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                               ScaleAug(), CutOut(32, 0.5), ToTensor()]))
 
-    train_data_batch = DataLoader(train_dataset, batch_size=8*len(device_list), shuffle=True, drop_last=True, **kwargs)
+    train_data_batch = DataLoader(train_dataset, batch_size=4*len(device_list), shuffle=True, drop_last=True, **kwargs)
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=4*len(device_list), shuffle=False, drop_last=False, **kwargs)
