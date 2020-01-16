@@ -29,7 +29,7 @@ def load_model(model_path):
 def img_transform(img):
     img = crop_resize_data(img)
     img = np.transpose(img,(2,0,1))
-    img = img[np.newaxis,:].astype(np.float32)
+    img = img[np.newaxis,:].astype(np.float16)
     img = torch.from_numpy(img.copy())
     if torch.cuda.is_available():
         img = img.cuda(device=device_id)
