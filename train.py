@@ -56,7 +56,7 @@ def test(net, epoch, dataLoader, testF, config):
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
     testF.write("Epoch:{} \n".format(epoch))
     for i in range(8):
-        result_string = "{}: {:.4f} \n".format(i, result["TP"]/result["TA"])
+        result_string = "{}: {:.4f} \n".format(i, result["TP"][i]/result["TA"][i])
         print(result_string)
         testF.write(result_string)
     testF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
