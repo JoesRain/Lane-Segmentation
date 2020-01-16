@@ -22,16 +22,22 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     net.train()
     total_mask_loss = 0.0
     dataprocess = tqdm(dataLoader)
-    for batch_item in dataprocess:
+    # for batch_item in dataprocess:
+    accumulation_steps = 8
+    for i, (batch_item) in enumerate(dataprocess):
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
-        optimizer.zero_grad()
+        # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        total_mask_loss += mask_loss.item()
+        # total_mask_loss += mask_loss.item()
+        total_mask_loss += mask_loss.item()/accumulation_steps
         mask_loss.backward()
-        optimizer.step()
+        if ((i + 1) % accumulation_steps) == 0:
+            optimizer.step()  # 反向传播，更新网络参数
+            optimizer.zero_grad()  # 清空梯度
+        # optimizer.step()
         dataprocess.set_description_str("epoch:{}".format(epoch))
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
     trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
