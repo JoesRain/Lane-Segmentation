@@ -136,7 +136,7 @@ class ToTensor(object):
 
         image, mask = sample
         image = np.transpose(image,(2,0,1))
-        image = image.astype(np.float16)
+        image = image.astype(np.float32)
         mask = mask.astype(np.long)
         return {'image': torch.from_numpy(image.copy()),
                 'mask': torch.from_numpy(mask.copy())}
