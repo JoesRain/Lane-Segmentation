@@ -106,23 +106,28 @@ def main():
     optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
                                 momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
 
-    path = os.path.join(os.getcwd(), lane_config.SAVE_PATH, "finalNet.pth.tar")
+    path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
     if os.path.exists(path):
         checkpoint = torch.load(path)
         net.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        start_epoch = checkpoint['epoch']
+        print('加载 epoch {} 成功！'.format(start_epoch))
+    else:
+        start_epoch = 0
+        print('无保存模型，将从头开始训练！')
 
-    # optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
-    for epoch in range(20 + 1, lane_config.EPOCHS):
-        # adjust_lr(optimizer, epoch)
+    for epoch in range(start_epoch + 1, lane_config.EPOCHS):
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
-        if epoch % 20 == 0:
-            torch.save({'state_dict': net.state_dict()}, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "laneNet{}.pth.tar".format(epoch)))
+        if epoch % 10 == 0:
+            path1 = "/home/ubuntu/baidu/Lane-Segmentation/logs/laneNet{}.pth".format(epoch)
+            state = {'model': net.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}
+            torch.save(state, path1)
     trainF.close()
     testF.close()
-    torch.save({'state_dict': net.state_dict()}, os.path.join(os.getcwd(), lane_config.SAVE_PATH, "finalNet.pth.tar"))
-
+    state = {'model': net.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': lane_config.EPOCHS}
+    torch.save(state, path)
 
 if __name__ == "__main__":
     main()
