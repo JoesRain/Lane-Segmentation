@@ -111,10 +111,9 @@ def main():
         checkpoint = torch.load(path)
         net.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        start_epoch = checkpoint['epoch']
 
     # optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
-    for epoch in range(start_epoch + 1, lane_config.EPOCHS):
+    for epoch in range(20 + 1, lane_config.EPOCHS):
         # adjust_lr(optimizer, epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
