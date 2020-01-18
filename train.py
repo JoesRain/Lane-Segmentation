@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss
+from utils.loss import MySoftmaxCrossEntropyLoss,FocalLoss
 from model.deeplabv3plus import DeeplabV3Plus
 from config import Config
 
@@ -31,7 +31,9 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
+        focal_loss = FocalLoss()(out,mask)
         # total_mask_loss += mask_loss.item()
+        loss = mask_loss + focal_loss
         total_mask_loss += mask_loss.item()/accumulation_steps
         mask_loss.backward()
         if ((i + 1) % accumulation_steps) == 0:
@@ -106,18 +108,18 @@ def main():
     optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
                                 momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
 
-    path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
-    if os.path.exists(path):
-        checkpoint = torch.load(path)
-        net.load_state_dict(checkpoint['model'])
-        optimizer.load_state_dict(checkpoint['optimizer'])
-        start_epoch = checkpoint['epoch']
-        print('加载 epoch {} 成功！'.format(start_epoch))
-    else:
-        start_epoch = 0
-        print('无保存模型，将从头开始训练！')
+    # path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
+    # if os.path.exists(path):
+    #     checkpoint = torch.load(path)
+    #     net.load_state_dict(checkpoint['model'])
+    #     optimizer.load_state_dict(checkpoint['optimizer'])
+    #     start_epoch = checkpoint['epoch']
+    #     print('加载 epoch {} 成功！'.format(start_epoch))
+    # else:
+    #     start_epoch = 0
+    #     print('无保存模型，将从头开始训练！')
 
-    for epoch in range(start_epoch + 1, lane_config.EPOCHS):
+    for epoch in range(lane_config.EPOCHS):
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
         if epoch % 10 == 0:
