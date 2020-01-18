@@ -11,6 +11,6 @@ class Config(object):
     EPOCHS = 200
     WEIGHT_DECAY = 1.0e-4
     SAVE_PATH = "logs"
-    BASE_LR = 0.0006
+    BASE_LR = 0.0015
 
 
