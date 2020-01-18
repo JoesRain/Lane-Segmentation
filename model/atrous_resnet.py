@@ -160,42 +160,27 @@ class ResNet_Atrous(nn.Module):
         x = self.layer5(x)
         x = self.layer6(x)
         layers_list.append(x)
-
         return layers_list
 
-class CALayer(nn.Module):
-    # Channel Attention (CA) Layer
-    def __init__(self, channel, reduction=16, stride=1):
-        super(CALayer, self).__init__()
-        # feature channel downscale and upscale --> channel weight
-        self.attention = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            Bottleneck(channel, channel // reduction, stride=stride),
-            Bottleneck(channel // reduction, channel, stride=stride),
-            nn.Sigmoid())
-
-    def forward(self, x):
-        return x * self.attention(x)
-
-def resnet50_atrous(pretrained=True, os=16, **kwargs):
+def resnet50_atrous(pretrained=False, os=16, **kwargs):
     """Constructs a atrous ResNet-50 model."""
     model = ResNet_Atrous(Bottleneck, [3, 4, 6, 3], atrous=[1, 2, 1], os=os, **kwargs)
-    if pretrained:
-        old_dict = model_zoo.load_url(model_urls['resnet50'])
-        model_dict = model.state_dict()
-        old_dict = {k: v for k, v in old_dict.items() if (k in model_dict)}
-        model_dict.update(old_dict)
-        model.load_state_dict(model_dict)
+    # if pretrained:
+    #     old_dict = model_zoo.load_url(model_urls['resnet50'])
+    #     model_dict = model.state_dict()
+    #     old_dict = {k: v for k, v in old_dict.items() if (k in model_dict)}
+    #     model_dict.update(old_dict)
+    #     model.load_state_dict(model_dict)
     return model
 
 
-def resnet101_atrous(pretrained=True, os=16, **kwargs):
+def resnet101_atrous(pretrained=False, os=16, **kwargs):
     """Constructs a atrous ResNet-101 model."""
     model = ResNet_Atrous(Bottleneck, [3, 4, 23, 3], atrous=[1, 2, 1], os=os, **kwargs)
-    if pretrained:
-        old_dict = model_zoo.load_url(model_urls['resnet101'])
-        model_dict = model.state_dict()
-        old_dict = {k: v for k, v in old_dict.items() if (k in model_dict)}
-        model_dict.update(old_dict)
-        model.load_state_dict(model_dict)
+    # if pretrained:
+    #     old_dict = model_zoo.load_url(model_urls['resnet101'])
+    #     model_dict = model.state_dict()
+    #     old_dict = {k: v for k, v in old_dict.items() if (k in model_dict)}
+    #     model_dict.update(old_dict)
+    #     model.load_state_dict(model_dict)
     return model
