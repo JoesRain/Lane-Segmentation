@@ -55,7 +55,7 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_chans, out_chans, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_chans)
-        self.conv2 = nn.Conv2d(out_chans, out_chans, kernel_size=3, stride=stride,
+        self.conv2 = nn.Conv2d(out_chans, out_chans,groups=32,kernel_size=3, stride=stride,
                                padding=1 * atrous, dilation=atrous, bias=False)
         self.bn2 = nn.BatchNorm2d(out_chans)
         self.conv3 = nn.Conv2d(out_chans, out_chans * self.expansion, kernel_size=1, bias=False)
@@ -163,6 +163,19 @@ class ResNet_Atrous(nn.Module):
 
         return layers_list
 
+class CALayer(nn.Module):
+    # Channel Attention (CA) Layer
+    def __init__(self, channel, reduction=16, stride=1):
+        super(CALayer, self).__init__()
+        # feature channel downscale and upscale --> channel weight
+        self.attention = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            Bottleneck(channel, channel // reduction, stride=stride),
+            Bottleneck(channel // reduction, channel, stride=stride),
+            nn.Sigmoid())
+
+    def forward(self, x):
+        return x * self.attention(x)
 
 def resnet50_atrous(pretrained=True, os=16, **kwargs):
     """Constructs a atrous ResNet-50 model."""

@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
-from model.atrous_resnet import resnet50_atrous
+from model.atrous_resnet import resnet50_atrous,CALayer
 from model.module import ASPP
-
 
 class DeeplabV3Plus(nn.Module):
     def __init__(self, cfg):
@@ -31,6 +30,7 @@ class DeeplabV3Plus(nn.Module):
                 nn.Dropout(0.1),
         )
         self.cls_conv = nn.Conv2d(cfg.ASPP_OUTDIM, cfg.NUM_CLASSES, 1, 1, padding=0)
+        self.ca_layer = CALayer(cfg.NUM_CLASSES)
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -49,4 +49,5 @@ class DeeplabV3Plus(nn.Module):
         result = self.cat_conv(feature_cat)
         result = self.cls_conv(result)
         result = self.upsample4(result)
+        result = self.ca_layer(result)
         return result
