@@ -106,9 +106,9 @@ def main():
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
-    optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
-                                momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
-
+    # optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
+                                # momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
+    optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
     # path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
     # if os.path.exists(path):
     #     checkpoint = torch.load(path)
