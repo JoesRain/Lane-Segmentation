@@ -93,9 +93,9 @@ class ResNet_Atrous(nn.Module):
         super(ResNet_Atrous, self).__init__()
         stride_list = None
         if os == 8:
-            stride_list = [2, 2, 1]
+            stride_list = [2, 1, 1]
         elif os == 16:
-            stride_list = [2, 2, 2]
+            stride_list = [2, 2, 1]
         else:
             raise ValueError('resnet_atrous.py: output stride=%d is not supported.' % os)
 
@@ -105,7 +105,7 @@ class ResNet_Atrous(nn.Module):
 
         self.bn1 = nn.BatchNorm2d(64)
         self.relu = nn.ReLU(inplace=True)
-        # self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
         self.layer1 = self._make_layer(block, 64, 64, layers[0])
         self.layer2 = self._make_layer(block, 256, 128, layers[1], stride=stride_list[0])
         self.layer3 = self._make_layer(block, 512, 256, layers[2], stride=stride_list[1], atrous=16 // os)
@@ -149,9 +149,8 @@ class ResNet_Atrous(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        # x = self.maxpool(x)
-        x = self.layer1(x)
         x = self.maxpool(x)
+        x = self.layer1(x)
         layers_list.append(x)
         x = self.layer2(x)
         layers_list.append(x)
