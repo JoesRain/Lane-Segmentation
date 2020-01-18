@@ -31,10 +31,8 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        focal_loss = FocalLoss()(out, mask)
         # total_mask_loss += mask_loss.item()
-        loss = mask_loss + focal_loss
-        total_mask_loss += loss.item()/accumulation_steps
+        total_mask_loss += mask_loss.item()/accumulation_steps
         mask_loss.backward()
         if ((i + 1) % accumulation_steps) == 0:
             optimizer.step()  # 反向传播，更新网络参数
