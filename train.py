@@ -57,7 +57,10 @@ def test(net, epoch, dataLoader, testF, config):
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        total_mask_loss += mask_loss.detach().item()
+        focal_loss = FocalLoss()(out, mask)
+        # total_mask_loss += mask_loss.item()
+        loss = mask_loss + focal_loss
+        total_mask_loss += loss.detach().item()
         pred = torch.argmax(F.softmax(out, dim=1), dim=1)
         result = compute_iou(pred, mask, result)
         dataprocess.set_description_str("epoch:{}".format(epoch))
