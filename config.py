@@ -1,7 +1,7 @@
 
 class Config(object):
     # model config
-    OUTPUT_STRIDE = 16
+    OUTPUT_STRIDE = 8
     ASPP_OUTDIM = 256
     SHORTCUT_DIM = 48
     SHORTCUT_KERNEL = 1
