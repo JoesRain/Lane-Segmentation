@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from model.atrous_resnet import resnet50_atrous
+from model.xception import AlignedXception
 from model.module import ASPP
 
 
@@ -8,6 +9,7 @@ class DeeplabV3Plus(nn.Module):
     def __init__(self, cfg):
         super(DeeplabV3Plus, self).__init__()
         self.backbone = resnet50_atrous(pretrained=False, os=cfg.OUTPUT_STRIDE)
+        # self.backbone = AlignedXception(BatchNorm=nn.BatchNorm2d, pretrained=True, output_stride=cfg.OUTPUT_STRIDE)
         input_channel = 2048
         self.aspp = ASPP(in_chans=input_channel, out_chans=cfg.ASPP_OUTDIM, rate=16 // cfg.OUTPUT_STRIDE)
         self.dropout1 = nn.Dropout(0.5)
