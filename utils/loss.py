@@ -75,12 +75,12 @@ def focal_loss(input, target):
     # shape [num_samples,]
     log_p = probs.log()
 
-    print('in calculating batch_loss', weights.shape, probs.shape, log_p.shape)
+    # print('in calculating batch_loss', weights.shape, probs.shape, log_p.shape)
 
     # batch_loss = -weights * (torch.pow((1 - probs), gamma)) * log_p
     batch_loss = -(torch.pow((1 - probs), gamma)) * log_p
 
-    print(batch_loss.shape)
+    # print(batch_loss.shape)
 
     loss = batch_loss.mean()
     return loss
