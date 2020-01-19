@@ -55,7 +55,7 @@ class Bottleneck(nn.Module):
         super(Bottleneck, self).__init__()
         self.conv1 = nn.Conv2d(in_chans, out_chans, kernel_size=1, bias=False)
         self.bn1 = nn.BatchNorm2d(out_chans)
-        self.conv2 = nn.Conv2d(out_chans, out_chans,groups=32,kernel_size=3, stride=stride,
+        self.conv2 = nn.Conv2d(out_chans, out_chans, groups=32, kernel_size=3, stride=stride,
                                padding=1 * atrous, dilation=atrous, bias=False)
         self.bn2 = nn.BatchNorm2d(out_chans)
         self.conv3 = nn.Conv2d(out_chans, out_chans * self.expansion, kernel_size=1, bias=False)
@@ -88,7 +88,6 @@ class Bottleneck(nn.Module):
 
 
 class ResNet_Atrous(nn.Module):
-
     def __init__(self, block, layers, atrous=None, os=16):
         super(ResNet_Atrous, self).__init__()
         stride_list = None
@@ -111,8 +110,10 @@ class ResNet_Atrous(nn.Module):
         self.layer3 = self._make_layer(block, 512, 256, layers[2], stride=stride_list[1], atrous=16 // os)
         self.layer4 = self._make_layer(block, 1024, 512, layers[3], stride=stride_list[2],
                                        atrous=[item * 16 // os for item in atrous])
-        self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
-        self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1, atrous=[item*16//os for item in atrous])
+        self.layer5 = self._make_layer(block, 2048, 512, layers[3], stride=1,
+                                       atrous=[item * 16 // os for item in atrous])
+        self.layer6 = self._make_layer(block, 2048, 512, layers[3], stride=1,
+                                       atrous=[item * 16 // os for item in atrous])
         self.layers = []
 
         for m in self.modules():
@@ -138,7 +139,7 @@ class ResNet_Atrous(nn.Module):
 
         layers = []
         layers.append(block(in_chans, out_chans, stride=stride, atrous=atrous[0], downsample=downsample))
-        in_chans = out_chans*4
+        in_chans = out_chans * 4
         for i in range(1, blocks):
             layers.append(block(in_chans, out_chans, stride=1, atrous=atrous[i]))
 
@@ -161,6 +162,7 @@ class ResNet_Atrous(nn.Module):
         x = self.layer6(x)
         layers_list.append(x)
         return layers_list
+
 
 def resnet50_atrous(pretrained=False, os=16, **kwargs):
     """Constructs a atrous ResNet-50 model."""

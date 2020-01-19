@@ -1,4 +1,3 @@
-
 class Config(object):
     # model config
     OUTPUT_STRIDE = 16
@@ -12,5 +11,3 @@ class Config(object):
     WEIGHT_DECAY = 1.0e-4
     SAVE_PATH = "logs"
     BASE_LR = 0.0015
-
-

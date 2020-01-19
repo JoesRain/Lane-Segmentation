@@ -5,9 +5,9 @@ import colorsys
 def encode_labels(color_mask):
     encode_mask = np.zeros((color_mask.shape[0], color_mask.shape[1]))
     # 0
-    id_train = {0:[0, 249, 255,218, 219],
-                1:[200, 204, 209, 213, 206, 207], 2: [201,203, 211, 208], 3:[216,215,217], 4:[232,210], 5:[214],
-                6:[220,221,222,224,225,226, 202, 231, 230,228,229,233], 7:[205,227,250,212,223]}
+    id_train = {0: [0, 249, 255, 218, 219],
+                1: [200, 204, 209, 213, 206, 207], 2: [201, 203, 211, 208], 3: [216, 215, 217], 4: [232, 210], 5: [214],
+                6: [220, 221, 222, 224, 225, 226, 202, 231, 230, 228, 229, 233], 7: [205, 227, 250, 212, 223]}
     for i in range(8):
         for item in id_train[i]:
             encode_mask[color_mask == item] = i
@@ -80,8 +80,8 @@ def class_colors(num_classes, bright=True):
     based on the class id to choose a centrial color to show them
     """
     brightness = 1.0 if bright else 0.7
-    hsv = [(i / np.float (num_classes), 1, brightness) for i in range (num_classes)]
-    color_map = list (map (lambda c: colorsys.hsv_to_rgb (*c), hsv))
+    hsv = [(i / np.float(num_classes), 1, brightness) for i in range(num_classes)]
+    color_map = list(map(lambda c: colorsys.hsv_to_rgb(*c), hsv))
     color_map = np.array(color_map)
 
     return color_map

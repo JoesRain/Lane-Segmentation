@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 
 class Block(nn.Module):
-    def __init__(self, in_ch,out_ch, kernel_size=3, padding=1, stride=1):
+    def __init__(self, in_ch, out_ch, kernel_size=3, padding=1, stride=1):
         super(Block, self).__init__()
         self.conv1 = nn.Conv2d(in_ch, out_ch, kernel_size=kernel_size, padding=padding, stride=stride)
         self.bn1 = nn.BatchNorm2d(out_ch)
@@ -16,7 +16,7 @@ class Block(nn.Module):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, in_ch,out_ch, kernel_size=3, padding=1, stride=1):
+    def __init__(self, in_ch, out_ch, kernel_size=3, padding=1, stride=1):
         super(ResBlock, self).__init__()
         self.bn1 = nn.BatchNorm2d(in_ch)
         self.relu1 = nn.ReLU(inplace=True)
@@ -92,7 +92,6 @@ class Layer(nn.Module):
 
 
 class ASPP(nn.Module):
-
     def __init__(self, in_chans, out_chans, rate=1):
         super(ASPP, self).__init__()
         self.branch1 = nn.Sequential(

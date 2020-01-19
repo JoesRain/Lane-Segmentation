@@ -4,8 +4,8 @@ import numpy as np
 import torch.nn.functional as F
 from torch.autograd import Variable
 
-class MySoftmaxCrossEntropyLoss(nn.Module):
 
+class MySoftmaxCrossEntropyLoss(nn.Module):
     def __init__(self, nbclasses):
         super(MySoftmaxCrossEntropyLoss, self).__init__()
         self.nbclasses = nbclasses
@@ -18,44 +18,73 @@ class MySoftmaxCrossEntropyLoss(nn.Module):
         target = target.view(-1)
         return nn.CrossEntropyLoss(reduction="mean")(inputs, target)
 
-class FocalLoss(nn.Module):
-    def __init__(self, num_classes,gamma=2, alpha=0.25, size_average=True):
-        super(FocalLoss, self).__init__()
-        self.gamma = gamma
-        if isinstance(alpha, list):
-            assert len(alpha) == num_classes  # α可以以list方式输入,size:[num_classes] 用于对不同类别精细地赋予权重
-            print("Focal_loss alpha = {}, 将对每一类权重进行精细化赋值".format(alpha))
-            self.alpha = torch.Tensor(alpha)
-        else:
-            assert alpha < 1
-            print(" --- Focal_loss alpha = {} ,将对背景类进行衰减,请在目标检测任务中使用 --- ".format(alpha))
-            self.alpha = torch.zeros(num_classes)
-            self.alpha[0] += alpha
-            self.alpha[1:] += (1 - alpha)  # α 最终为 [ α, 1-α, 1-α, 1-α, 1-α, ...] size:[num_classes]
-        self.size_average = size_average
 
-    def forward(self, preds, labels):
-        """
-        focal_loss损失计算
-        :param preds:   预测类别. size:[B,N,C] or [B,C]    分别对应与检测与分类任务, B 批次, N检测框数, C类别数
-        :param labels:  实际类别. size:[B,N] or [B]
-        :return:
-        """
-        # assert preds.dim()==2 and labels.dim()==1
-        preds = preds.view(-1,preds.size(-1))
-        self.alpha = self.alpha.to(preds.device)
-        preds_softmax = F.softmax(preds, dim=1) # 这里并没有直接使用log_softmax, 因为后面会用到softmax的结果(当然你也可以使用log_softmax,然后进行exp操作)
-        preds_logsoft = torch.log(preds_softmax)
-        preds_softmax = preds_softmax.gather(1,labels.view(-1,1))   # 这部分实现nll_loss ( crossempty = log_softmax + nll )
-        preds_logsoft = preds_logsoft.gather(1,labels.view(-1,1))
-        self.alpha = self.alpha.gather(0,labels.view(-1))
-        loss = -torch.mul(torch.pow((1-preds_softmax), self.gamma), preds_logsoft)  # torch.pow((1-preds_softmax), self.gamma) 为focal loss中 (1-pt)**γ
-        loss = torch.mul(self.alpha, loss.t())
-        if self.size_average:
-            loss = loss.mean()
-        else:
-            loss = loss.sum()
-        return loss
+def compute_class_weights(histogram):
+    classWeights = np.ones(8, dtype=np.float32)
+    normHist = histogram / np.sum(histogram)
+    for i in range(8):
+        classWeights[i] = 1 / (np.log(1.10 + normHist[i]))
+    return classWeights
+
+
+def focal_loss(input, target):
+    '''
+    :param input: 使用知乎上面大神给出的方案 https://zhuanlan.zhihu.com/p/28527749
+    :param target:
+    :return:
+    '''
+    n, c, h, w = input.size()
+
+    target = target.long()
+    inputs = input.transpose(1, 2).transpose(2, 3).contiguous().view(-1, c)
+    target = target.contiguous().view(-1)
+
+    N = inputs.size(0)
+    C = inputs.size(1)
+
+    number_0 = torch.sum(target == 0).item()
+    number_1 = torch.sum(target == 1).item()
+    number_2 = torch.sum(target == 2).item()
+    number_3 = torch.sum(target == 3).item()
+    number_4 = torch.sum(target == 4).item()
+    number_5 = torch.sum(target == 5).item()
+    number_6 = torch.sum(target == 6).item()
+    number_7 = torch.sum(target == 7).item()
+
+    frequency = torch.tensor((number_0, number_1, number_2, number_3, number_4, number_5, number_6,
+                              number_7), dtype=torch.float32)
+    frequency = frequency.numpy()
+    classWeights = compute_class_weights(frequency)
+
+    weights = torch.from_numpy(classWeights).float()
+    weights = weights[target.view(-1)]
+    # 这行代码非常重要
+
+    gamma = 2
+
+    P = F.softmax(inputs, dim=1)
+    # shape [num_samples,num_classes]
+
+    class_mask = inputs.data.new(N, C).fill_(0)
+    class_mask = Variable(class_mask)
+    ids = target.view(-1, 1)
+    class_mask.scatter_(1, ids.data, 1.)
+    # shape [num_samples,num_classes] one-hot encoding
+
+    probs = (P * class_mask).sum(1).view(-1, 1)
+    # shape [num_samples,]
+    log_p = probs.log()
+
+    print('in calculating batch_loss', weights.shape, probs.shape, log_p.shape)
+
+    # batch_loss = -weights * (torch.pow((1 - probs), gamma)) * log_p
+    batch_loss = -(torch.pow((1 - probs), gamma)) * log_p
+
+    print(batch_loss.shape)
+
+    loss = batch_loss.mean()
+    return loss
+
 
 def make_one_hot(input, num_classes):
     """Convert class index tensor to one hot encoding tensor.
@@ -88,6 +117,7 @@ class BinaryDiceLoss(nn.Module):
     Raise:
         Exception if unexpected reduction
     """
+
     def __init__(self, smooth=1, p=2, reduction='mean'):
         super(BinaryDiceLoss, self).__init__()
         self.smooth = smooth
@@ -98,7 +128,7 @@ class BinaryDiceLoss(nn.Module):
         assert predict.shape[0] == target.shape[0], "predict & target batch size don't match"
         predict = predict.contiguous().view(predict.shape[0], -1)
         target = target.contiguous().view(target.shape[0], -1)
-        num = 2*torch.sum(torch.mul(predict, target), dim=1) + self.smooth
+        num = 2 * torch.sum(torch.mul(predict, target), dim=1) + self.smooth
         den = torch.sum(predict.pow(self.p) + target.pow(self.p), dim=1) + self.smooth
 
         loss = 1 - num / den
@@ -124,6 +154,7 @@ class DiceLoss(nn.Module):
     Return:
         same as BinaryDiceLoss
     """
+
     def __init__(self, weight=None, ignore_index=None, **kwargs):
         super(DiceLoss, self).__init__()
         self.kwargs = kwargs
@@ -145,4 +176,4 @@ class DiceLoss(nn.Module):
                     dice_loss *= self.weights[i]
                 total_loss += dice_loss
 
-        return total_loss/target.shape[1]
+        return total_loss / target.shape[1]

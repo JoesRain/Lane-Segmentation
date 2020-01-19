@@ -8,7 +8,6 @@ from torch.utils.data import Dataset
 from imgaug import augmenters as iaa
 from utils.process_labels import encode_labels, decode_labels, decode_color_labels
 
-
 sometimes = lambda aug: iaa.Sometimes(0.5, aug)
 
 
@@ -31,11 +30,10 @@ def crop_resize_data(image, label=None, image_size=(1024, 384), offset=690):
 
 
 class LaneDataset(Dataset):
-
     def __init__(self, csv_file, transform=None):
         super(LaneDataset, self).__init__()
         self.data = pd.read_csv(os.path.join(os.getcwd(), "data_list", csv_file), header=None,
-                                  names=["image","label"])
+                                names=["image", "label"])
         self.images = self.data["image"].values[1:]
         self.labels = self.data["label"].values[1:]
 
@@ -45,7 +43,6 @@ class LaneDataset(Dataset):
         return self.labels.shape[0]
 
     def __getitem__(self, idx):
-
         ori_image = cv2.imread(self.images[idx])
         ori_mask = cv2.imread(self.labels[idx], cv2.IMREAD_GRAYSCALE)
         train_img, train_mask = crop_resize_data(ori_image, ori_mask)
@@ -61,7 +58,7 @@ class LaneDataset(Dataset):
 class ImageAug(object):
     def __call__(self, sample):
         image, mask = sample
-        if np.random.uniform(0,1) > 0.5:
+        if np.random.uniform(0, 1) > 0.5:
             seq = iaa.Sequential([iaa.OneOf([
                 iaa.AdditiveGaussianNoise(scale=(0, 0.2 * 255)),
                 iaa.Sharpen(alpha=(0.1, 0.3), lightness=(0.7, 1.3)),
@@ -88,8 +85,8 @@ class ScaleAug(object):
         h, w, _ = image.shape
         aug_image = image.copy()
         aug_mask = mask.copy()
-        aug_image = cv2.resize(aug_image, (int (scale * w), int (scale * h)))
-        aug_mask = cv2.resize(aug_mask, (int (scale * w), int (scale * h)))
+        aug_image = cv2.resize(aug_image, (int(scale * w), int(scale * h)))
+        aug_mask = cv2.resize(aug_mask, (int(scale * w), int(scale * h)))
         if (scale < 1.0):
             new_h, new_w, _ = aug_image.shape
             pre_h_pad = int((h - new_h) / 2)
@@ -99,8 +96,8 @@ class ScaleAug(object):
             aug_mask = np.pad(aug_mask, pad_list[:2], mode="constant")
         if (scale > 1.0):
             new_h, new_w, _ = aug_image.shape
-            pre_h_crop = int ((new_h - h) / 2)
-            pre_w_crop = int ((new_w - w) / 2)
+            pre_h_crop = int((new_h - h) / 2)
+            pre_w_crop = int((new_w - w) / 2)
             post_h_crop = h + pre_h_crop
             post_w_crop = w + pre_w_crop
             aug_image = aug_image[pre_h_crop:post_h_crop, pre_w_crop:post_w_crop]
@@ -133,9 +130,8 @@ class CutOut(object):
 
 class ToTensor(object):
     def __call__(self, sample):
-
         image, mask = sample
-        image = np.transpose(image,(2,0,1))
+        image = np.transpose(image, (2, 0, 1))
         image = image.astype(np.float32)
         mask = mask.astype(np.long)
         return {'image': torch.from_numpy(image.copy()),
@@ -144,7 +140,8 @@ class ToTensor(object):
 
 def expand_resize_data(prediction=None, submission_size=(3384, 1710), offset=690):
     pred_mask = decode_labels(prediction)
-    expand_mask = cv2.resize(pred_mask, (submission_size[0], submission_size[1] - offset), interpolation=cv2.INTER_NEAREST)
+    expand_mask = cv2.resize(pred_mask, (submission_size[0], submission_size[1] - offset),
+                             interpolation=cv2.INTER_NEAREST)
     submission_mask = np.zeros((submission_size[1], submission_size[0]), dtype='uint8')
     submission_mask[offset:, :] = expand_mask
     return submission_mask
@@ -153,7 +150,8 @@ def expand_resize_data(prediction=None, submission_size=(3384, 1710), offset=690
 def expand_resize_color_data(prediction=None, submission_size=(3384, 1710), offset=690):
     color_pred_mask = decode_color_labels(prediction)
     color_pred_mask = np.transpose(color_pred_mask, (1, 2, 0))
-    color_expand_mask = cv2.resize(color_pred_mask, (submission_size[0], submission_size[1] - offset), interpolation=cv2.INTER_NEAREST)
+    color_expand_mask = cv2.resize(color_pred_mask, (submission_size[0], submission_size[1] - offset),
+                                   interpolation=cv2.INTER_NEAREST)
     color_submission_mask = np.zeros((submission_size[1], submission_size[0], 3), dtype='uint8')
     color_submission_mask[offset:, :, :] = color_expand_mask
     return color_submission_mask

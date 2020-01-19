@@ -7,16 +7,17 @@ class ResNet101v2(nn.Module):
     '''
     ResNet101 model 
     '''
+
     def __init__(self):
         super(ResNet101v2, self).__init__()
         self.conv1 = Block(3, 64, 7, 3, 2)
         self.pool1 = nn.MaxPool2d(kernel_size=3, stride=2, ceil_mode=True)
-        self.conv2_1 =DownBottleneck(64, 256, stride=1)
-        self.conv2_2 =Bottleneck(256, 256)
-        self.conv2_3 =Bottleneck(256, 256)
-        self.layer3 = Layer(256, [512]*2, "resnet")
-        self.layer4 = Layer(512, [1024]*23, "resnet")
-        self.layer5 = Layer(1024, [2048]*3, "resnet")
+        self.conv2_1 = DownBottleneck(64, 256, stride=1)
+        self.conv2_2 = Bottleneck(256, 256)
+        self.conv2_3 = Bottleneck(256, 256)
+        self.layer3 = Layer(256, [512] * 2, "resnet")
+        self.layer4 = Layer(512, [1024] * 23, "resnet")
+        self.layer5 = Layer(1024, [2048] * 3, "resnet")
 
     def forward(self, x):
         f1 = self.conv1(x)

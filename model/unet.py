@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 
+
 class UNetConvBlock(nn.Module):
     def __init__(self, in_chans, out_chans, padding, batch_norm):
         super(UNetConvBlock, self).__init__()
@@ -52,14 +53,15 @@ class UNetUpBlock(nn.Module):
 
         return out
 
+
 class UNetEncode(nn.Module):
     def __init__(
-        self,
-        in_channels=1,
-        depth=5,
-        wf=6,
-        padding=False,
-        batch_norm=False):
+            self,
+            in_channels=1,
+            depth=5,
+            wf=6,
+            padding=False,
+            batch_norm=False):
         super(UNetEncode, self).__init__()
         self.padding = padding
         self.depth = depth
@@ -70,6 +72,7 @@ class UNetEncode(nn.Module):
                 UNetConvBlock(prev_channels, 2 ** (wf + i), padding, batch_norm)
             )
             prev_channels = 2 ** (wf + i)
+
     def forward(self, x):
         blocks = []
         for i, down in enumerate(self.down_path):
@@ -81,21 +84,22 @@ class UNetEncode(nn.Module):
 
         return blocks
 
+
 class UNet(nn.Module):
     def __init__(
-        self,
-        n_classes=2,
-        depth=5,
-        wf=6,
-        padding=False,
-        batch_norm=False,
-        up_mode='upconv',
+            self,
+            n_classes=2,
+            depth=5,
+            wf=6,
+            padding=False,
+            batch_norm=False,
+            up_mode='upconv',
     ):
         super(UNet, self).__init__()
         assert up_mode in ('upconv', 'upsample')
         self.padding = padding
         self.depth = depth
-        prev_channels = 2 ** (wf + depth-1)
+        prev_channels = 2 ** (wf + depth - 1)
         self.encode = UNetEncode()
         self.up_path = nn.ModuleList()
         for i in reversed(range(depth - 1)):
