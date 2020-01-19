@@ -114,7 +114,7 @@ def main():
     # optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
                                 # momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
     optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
-    # path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
+    path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
     # if os.path.exists(path):
     #     checkpoint = torch.load(path)
     #     net.load_state_dict(checkpoint['model'])
