@@ -1,9 +1,8 @@
 import math
-import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.model_zoo as model_zoo
-from model.sync_batchnorm.batchnorm import SynchronizedBatchNorm2d
+from model.batchnorm import SynchronizedBatchNorm2d
 
 def fixed_padding(inputs, kernel_size, dilation):
     kernel_size_effective = kernel_size + (kernel_size - 1) * (dilation - 1)
