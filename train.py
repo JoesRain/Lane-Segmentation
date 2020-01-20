@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss
+from utils.loss import MySoftmaxCrossEntropyLoss, focal_loss
 from model.deeplabv3plus import DeeplabV3Plus
 from config import Config
 
@@ -54,10 +54,10 @@ def test(net, epoch, dataLoader, testF, config):
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        # focal_value = focal_loss(out, mask)
-        # loss = mask_loss + focal_value
+        focal_value = focal_loss(out, mask)
+        loss = mask_loss + focal_value
         # total_mask_loss += mask_loss.item()
-        total_mask_loss += mask_loss.detach().item()
+        total_mask_loss += loss.detach().item()
         pred = torch.argmax(F.softmax(out, dim=1), dim=1)
         result = compute_iou(pred, mask, result)
         dataprocess.set_description_str("epoch:{}".format(epoch))
@@ -121,7 +121,7 @@ def main():
     #     print('无保存模型，将从头开始训练！')
 
     for epoch in range(lane_config.EPOCHS):
-        adjust_lr(optimizer,epoch)
+        #adjust_lr(optimizer,epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
         if epoch % 5 == 0:
