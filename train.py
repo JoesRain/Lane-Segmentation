@@ -8,7 +8,9 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss, DiceLoss, make_one_hot, focal_loss
+from utils.loss import MySoftmaxCrossEntropyLoss
+#, DiceLoss, make_one_hot, focal_loss
+from utils.lovasz_losses import lovasz_softmax
 # from model.deeplabv3plus import DeeplabV3Plus
 from model.unet import UNet
 from torchsummary import summary
@@ -32,9 +34,9 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        # dice_loss = DiceLoss()(out,mask)
-        focal_value = focal_loss(out, mask)
-    loss = mask_loss + focal_value
+        lovasz_loss = lovasz_softmax(out, mask, ignore=255)
+        # focal_value = focal_loss(out, mask)
+    loss = mask_loss + lovasz_loss
     # total_mask_loss += mask_loss.item()
     total_mask_loss += loss.item() / accumulation_steps
     loss.backward()
@@ -61,8 +63,9 @@ def test(net, epoch, dataLoader, testF, config):
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         # dice_loss = DiceLoss()(out,mask)
-        focal_value = focal_loss(out, mask)
-    loss = mask_loss + focal_value
+        lovasz_loss = lovasz_softmax(out, mask, ignore=255)
+        # focal_value = focal_loss(out, mask)
+    loss = mask_loss + lovasz_loss
     total_mask_loss += loss.item() / accumulation_steps
     loss.backward()
     total_mask_loss += loss.detach().item()
