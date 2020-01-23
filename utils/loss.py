@@ -42,19 +42,19 @@ def focal_loss(input, target):
     N = inputs.size(0)
     C = inputs.size(1)
 
-    number_0 = torch.sum(target == 0).item()
-    number_1 = torch.sum(target == 1).item()
-    number_2 = torch.sum(target == 2).item()
-    number_3 = torch.sum(target == 3).item()
-    number_4 = torch.sum(target == 4).item()
-    number_5 = torch.sum(target == 5).item()
-    number_6 = torch.sum(target == 6).item()
-    number_7 = torch.sum(target == 7).item()
-
-    frequency = torch.tensor((number_0, number_1, number_2, number_3, number_4, number_5, number_6,
-                              number_7), dtype=torch.float32)
-    frequency = frequency.numpy()
-    classWeights = compute_class_weights(frequency)
+    # number_0 = torch.sum(target == 0).item()
+    # number_1 = torch.sum(target == 1).item()
+    # number_2 = torch.sum(target == 2).item()
+    # number_3 = torch.sum(target == 3).item()
+    # number_4 = torch.sum(target == 4).item()
+    # number_5 = torch.sum(target == 5).item()
+    # number_6 = torch.sum(target == 6).item()
+    # number_7 = torch.sum(target == 7).item()
+    #
+    # frequency = torch.tensor((number_0, number_1, number_2, number_3, number_4, number_5, number_6,
+    #                           number_7), dtype=torch.float32)
+    # frequency = frequency.numpy()
+    # classWeights = compute_class_weights(frequency)
 
     # weights = torch.from_numpy(classWeights).float()
     # weights = weights[target.view(-1)].cuda()
