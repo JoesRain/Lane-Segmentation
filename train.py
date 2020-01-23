@@ -8,8 +8,10 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss, focal_loss
-from model.deeplabv3plus import DeeplabV3Plus
+from utils.loss import MySoftmaxCrossEntropyLoss, DiceLoss, make_one_hot, focal_loss
+# from model.deeplabv3plus import DeeplabV3Plus
+from model.unet import UNet
+from torchsummary import summary
 from config import Config
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
@@ -30,15 +32,18 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        # total_mask_loss += mask_loss.item()
-        total_mask_loss += mask_loss.item() / accumulation_steps
-        mask_loss.backward()
-        if ((i + 1) % accumulation_steps) == 0:
-            optimizer.step()  # 反向传播，更新网络参数
-            optimizer.zero_grad()  # 清空梯度
-        # optimizer.step()
-        dataprocess.set_description_str("epoch:{}".format(epoch))
-        dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
+        # dice_loss = DiceLoss()(out,mask)
+        focal_value = focal_loss(out, mask)
+    loss = mask_loss + focal_value
+    # total_mask_loss += mask_loss.item()
+    total_mask_loss += loss.item() / accumulation_steps
+    loss.backward()
+    if ((i + 1) % accumulation_steps) == 0:
+        optimizer.step()  # 反向传播，更新网络参数
+        optimizer.zero_grad()  # 清空梯度
+    # optimizer.step()
+    dataprocess.set_description_str("epoch:{}".format(epoch))
+    dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
     trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
     trainF.flush()
 
@@ -47,6 +52,7 @@ def test(net, epoch, dataLoader, testF, config):
     net.eval()
     total_mask_loss = 0.0
     dataprocess = tqdm(dataLoader)
+    accumulation_steps = 8
     result = {"TP": {i: 0 for i in range(8)}, "TA": {i: 0 for i in range(8)}}
     for batch_item in dataprocess:
         image, mask = batch_item['image'], batch_item['mask']
@@ -54,14 +60,16 @@ def test(net, epoch, dataLoader, testF, config):
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
+        # dice_loss = DiceLoss()(out,mask)
         focal_value = focal_loss(out, mask)
-        loss = mask_loss + focal_value
-        # total_mask_loss += mask_loss.item()
-        total_mask_loss += loss.detach().item()
-        pred = torch.argmax(F.softmax(out, dim=1), dim=1)
-        result = compute_iou(pred, mask, result)
-        dataprocess.set_description_str("epoch:{}".format(epoch))
-        dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
+    loss = mask_loss + focal_value
+    total_mask_loss += loss.item() / accumulation_steps
+    loss.backward()
+    total_mask_loss += loss.detach().item()
+    pred = torch.argmax(F.softmax(out, dim=1), dim=1)
+    result = compute_iou(pred, mask, result)
+    dataprocess.set_description_str("epoch:{}".format(epoch))
+    dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss))
     testF.write("Epoch:{} \n".format(epoch))
     for i in range(8):
         result_string = "{}: {:.4f} \n".format(i, result["TP"][i] / result["TA"][i])
@@ -102,12 +110,14 @@ def main():
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=1 * len(device_list), shuffle=False, drop_last=False, **kwargs)
-    net = DeeplabV3Plus(lane_config)
+    # net = DeeplabV3Plus(lane_config)
+    net = UNet(n_classes=8)
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
         # optimizer = torch.optim.SGD(net.parameters(), lr=lane_config.BASE_LR,
         # momentum=0.9, weight_decay=lane_config.WEIGHT_DECAY)
+    # summary(net, (3, 384, 1024))
     optimizer = torch.optim.Adam(net.parameters(), lr=lane_config.BASE_LR, weight_decay=lane_config.WEIGHT_DECAY)
     path = "/home/ubuntu/baidu/Lane-Segmentation/logs/finalNet.pth"
     # if os.path.exists(path):
@@ -121,7 +131,7 @@ def main():
     #     print('无保存模型，将从头开始训练！')
 
     for epoch in range(lane_config.EPOCHS):
-        #adjust_lr(optimizer,epoch)
+        # adjust_lr(optimizer,epoch)
         train_epoch(net, epoch, train_data_batch, optimizer, trainF, lane_config)
         test(net, epoch, val_data_batch, testF, lane_config)
         if epoch % 5 == 0:

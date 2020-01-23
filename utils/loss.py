@@ -162,11 +162,13 @@ class DiceLoss(nn.Module):
         self.ignore_index = ignore_index
 
     def forward(self, predict, target):
+        target = target.unsqueeze(1)
+        target = make_one_hot(target,8).cuda()
+
         assert predict.shape == target.shape, 'predict & target shape do not match'
         dice = BinaryDiceLoss(**self.kwargs)
         total_loss = 0
         predict = F.softmax(predict, dim=1)
-
         for i in range(target.shape[1]):
             if i != self.ignore_index:
                 dice_loss = dice(predict[:, i], target[:, i])

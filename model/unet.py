@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torch.nn.functional as F
 
 class UNetConvBlock(nn.Module):
     def __init__(self, in_chans, out_chans, padding, batch_norm):
@@ -8,12 +8,12 @@ class UNetConvBlock(nn.Module):
         block = []
 
         block.append(nn.Conv2d(in_chans, out_chans, kernel_size=3, padding=int(padding)))
-        block.append(nn.ReLU())
+        block.append(nn.ReLU(inplace=True))
         if batch_norm:
             block.append(nn.BatchNorm2d(out_chans))
 
         block.append(nn.Conv2d(out_chans, out_chans, kernel_size=3, padding=int(padding)))
-        block.append(nn.ReLU())
+        block.append(nn.ReLU(inplace=True))
         if batch_norm:
             block.append(nn.BatchNorm2d(out_chans))
 
@@ -57,10 +57,10 @@ class UNetUpBlock(nn.Module):
 class UNetEncode(nn.Module):
     def __init__(
             self,
-            in_channels=1,
+            in_channels=3,
             depth=5,
             wf=6,
-            padding=False,
+            padding=1,
             batch_norm=False):
         super(UNetEncode, self).__init__()
         self.padding = padding
@@ -88,10 +88,10 @@ class UNetEncode(nn.Module):
 class UNet(nn.Module):
     def __init__(
             self,
-            n_classes=2,
+            n_classes=8,
             depth=5,
             wf=6,
-            padding=False,
+            padding=1,
             batch_norm=False,
             up_mode='upconv',
     ):
