@@ -56,8 +56,8 @@ def focal_loss(input, target):
     frequency = frequency.numpy()
     classWeights = compute_class_weights(frequency)
 
-    weights = torch.from_numpy(classWeights).float()
-    weights = weights[target.view(-1)]
+    # weights = torch.from_numpy(classWeights).float()
+    # weights = weights[target.view(-1)].cuda()
     # 这行代码非常重要
 
     gamma = 2
@@ -77,8 +77,8 @@ def focal_loss(input, target):
 
     # print('in calculating batch_loss', weights.shape, probs.shape, log_p.shape)
 
-    batch_loss = -weights * (torch.pow((1 - probs), gamma)) * log_p
-    # batch_loss = -(torch.pow((1 - probs), gamma)) * log_p
+    # batch_loss = -weights * (torch.pow((1 - probs), gamma)) * log_p
+    batch_loss = -(torch.pow((1 - probs), gamma)) * log_p
 
     # print(batch_loss.shape)
 
