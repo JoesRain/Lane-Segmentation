@@ -10,10 +10,10 @@ from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
 # , DiceLoss, make_one_hot, focal_loss
-from utils.lovasz_losses import lovasz_softmax
+#from utils.lovasz_losses import lovasz_softmax
 # from model.deeplabv3plus import DeeplabV3Plus
 from model.unet import UNet
-from torchsummary import summary
+#from torchsummary import summary
 from config import Config
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
@@ -34,12 +34,11 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        lovasz_loss = lovasz_softmax(out,mask)
+        # lovasz_loss = lovasz_softmax(out,mask)
         # focal_value = focal_loss(out, mask)
-    loss = mask_loss + lovasz_loss
     # total_mask_loss += mask_loss.item()
-    total_mask_loss += loss.item() / accumulation_steps
-    loss.backward()
+    total_mask_loss += mask_loss.item() / accumulation_steps
+    mask_loss.backward()
     if ((i + 1) % accumulation_steps) == 0:
         optimizer.step()  # 反向传播，更新网络参数
         optimizer.zero_grad()  # 清空梯度
@@ -62,10 +61,9 @@ def test(net, epoch, dataLoader, testF, config):
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         # dice_loss = DiceLoss()(out,mask)
-        lovasz_loss = lovasz_softmax(out,mask)
+        # lovasz_loss = lovasz_softmax(out,mask)
         # focal_value = focal_loss(out, mask)
-    loss = mask_loss + lovasz_loss
-    total_mask_loss += loss.detach().item()
+    total_mask_loss += mask_loss.detach().item()
     pred = torch.argmax(F.softmax(out, dim=1), dim=1)
     result = compute_iou(pred, mask, result)
     dataprocess.set_description_str("epoch:{}".format(epoch))

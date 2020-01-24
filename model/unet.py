@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class UNetConvBlock(nn.Module):
     def __init__(self, in_chans, out_chans, padding, batch_norm):
         super(UNetConvBlock, self).__init__()
@@ -18,15 +19,11 @@ class UNetConvBlock(nn.Module):
             block.append(nn.BatchNorm2d(out_chans))
 
         self.block = nn.Sequential(*block)
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+
     def forward(self, x):
         out = self.block(x)
         return out
+
 
 class UNetUpBlock(nn.Module):
     def __init__(self, in_chans, out_chans, up_mode, padding, batch_norm):
@@ -40,12 +37,7 @@ class UNetUpBlock(nn.Module):
             )
 
         self.conv_block = UNetConvBlock(in_chans, out_chans, padding, batch_norm)
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+
     def center_crop(self, layer, target_size):
         _, _, layer_height, layer_width = layer.size()
         diff_y = (layer_height - target_size[0]) // 2
@@ -81,12 +73,7 @@ class UNetEncode(nn.Module):
                 UNetConvBlock(prev_channels, 2 ** (wf + i), padding, batch_norm)
             )
             prev_channels = 2 ** (wf + i)
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
+
     def forward(self, x):
         blocks = []
         for i, down in enumerate(self.down_path):
@@ -107,7 +94,7 @@ class UNet(nn.Module):
             wf=6,
             padding=1,
             batch_norm=False,
-            up_mode='upsample',
+            up_mode='upconv',
     ):
         super(UNet, self).__init__()
         assert up_mode in ('upconv', 'upsample')
@@ -129,6 +116,8 @@ class UNet(nn.Module):
             elif isinstance(m, nn.BatchNorm2d):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.ConvTranspose2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
     def forward(self, x):
         blocks = self.encode(x)
