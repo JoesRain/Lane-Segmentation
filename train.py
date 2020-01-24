@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
-#, DiceLoss, make_one_hot, focal_loss
+# , DiceLoss, make_one_hot, focal_loss
 from utils.lovasz_losses import lovasz_softmax
 # from model.deeplabv3plus import DeeplabV3Plus
 from model.unet import UNet
@@ -34,7 +34,7 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        lovasz_loss = lovasz_softmax(out, mask, ignore=255)
+        lovasz_loss = lovasz_softmax(out,mask)
         # focal_value = focal_loss(out, mask)
     loss = mask_loss + lovasz_loss
     # total_mask_loss += mask_loss.item()
@@ -54,7 +54,6 @@ def test(net, epoch, dataLoader, testF, config):
     net.eval()
     total_mask_loss = 0.0
     dataprocess = tqdm(dataLoader)
-    accumulation_steps = 8
     result = {"TP": {i: 0 for i in range(8)}, "TA": {i: 0 for i in range(8)}}
     for batch_item in dataprocess:
         image, mask = batch_item['image'], batch_item['mask']
@@ -63,11 +62,9 @@ def test(net, epoch, dataLoader, testF, config):
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         # dice_loss = DiceLoss()(out,mask)
-        lovasz_loss = lovasz_softmax(out, mask, ignore=255)
+        lovasz_loss = lovasz_softmax(out,mask)
         # focal_value = focal_loss(out, mask)
     loss = mask_loss + lovasz_loss
-    total_mask_loss += loss.item() / accumulation_steps
-    loss.backward()
     total_mask_loss += loss.detach().item()
     pred = torch.argmax(F.softmax(out, dim=1), dim=1)
     result = compute_iou(pred, mask, result)
