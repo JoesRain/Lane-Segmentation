@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 
 class UNetConvBlock(nn.Module):
     def __init__(self, in_chans, out_chans, padding, batch_norm):
@@ -23,7 +24,6 @@ class UNetConvBlock(nn.Module):
         out = self.block(x)
         return out
 
-
 class UNetUpBlock(nn.Module):
     def __init__(self, in_chans, out_chans, up_mode, padding, batch_norm):
         super(UNetUpBlock, self).__init__()
@@ -36,7 +36,6 @@ class UNetUpBlock(nn.Module):
             )
 
         self.conv_block = UNetConvBlock(in_chans, out_chans, padding, batch_norm)
-
     def center_crop(self, layer, target_size):
         _, _, layer_height, layer_width = layer.size()
         diff_y = (layer_height - target_size[0]) // 2
@@ -72,7 +71,6 @@ class UNetEncode(nn.Module):
                 UNetConvBlock(prev_channels, 2 ** (wf + i), padding, batch_norm)
             )
             prev_channels = 2 ** (wf + i)
-
     def forward(self, x):
         blocks = []
         for i, down in enumerate(self.down_path):
@@ -109,7 +107,12 @@ class UNet(nn.Module):
             prev_channels = 2 ** (wf + i)
 
         self.last = nn.Conv2d(prev_channels, n_classes, kernel_size=1)
-
+        for m in self.modules():
+            if type(m) in [nn.ConvTranspose2d, nn.Conv2d]:
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+            elif type(m) == nn.BatchNorm2d:
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
     def forward(self, x):
         blocks = self.encode(x)
         x = blocks[-1]
