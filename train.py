@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss
+from utils.loss import MySoftmaxCrossEntropyLoss, focal_loss
 # , DiceLoss, make_one_hot, focal_loss
 #from utils.lovasz_losses import lovasz_softmax
 # from model.deeplabv3plus import DeeplabV3Plus
@@ -34,17 +34,17 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        # lovasz_loss = lovasz_softmax(out,mask)
-        # focal_value = focal_loss(out, mask)
-    # total_mask_loss += mask_loss.item()
-    total_mask_loss += mask_loss.item() / accumulation_steps
-    mask_loss.backward()
-    if ((i + 1) % accumulation_steps) == 0:
-        optimizer.step()  # 反向传播，更新网络参数
-        optimizer.zero_grad()  # 清空梯度
-    # optimizer.step()
-    dataprocess.set_description_str("epoch:{}".format(epoch))
-    dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
+        focal_value = focal_loss(out, mask)
+        loss = mask_loss + focal_value
+        # total_mask_loss += loss.item()
+        total_mask_loss += loss.item() / accumulation_steps
+        mask_loss.backward()
+        if ((i + 1) % accumulation_steps) == 0:
+            optimizer.step()  # 反向传播，更新网络参数
+            optimizer.zero_grad()  # 清空梯度
+        # optimizer.step()
+        dataprocess.set_description_str("epoch:{}".format(epoch))
+        dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
     trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
     trainF.flush()
 
@@ -61,9 +61,10 @@ def test(net, epoch, dataLoader, testF, config):
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         # dice_loss = DiceLoss()(out,mask)
-        # lovasz_loss = lovasz_softmax(out,mask)
-        # focal_value = focal_loss(out, mask)
-    total_mask_loss += mask_loss.detach().item()
+        focal_value = focal_loss(out, mask)
+        loss = mask_loss + focal_value
+        # total_mask_loss += mask_loss.item()
+        total_mask_loss += loss.detach().item()
     pred = torch.argmax(F.softmax(out, dim=1), dim=1)
     result = compute_iou(pred, mask, result)
     dataprocess.set_description_str("epoch:{}".format(epoch))
