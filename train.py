@@ -11,8 +11,8 @@ from utils.image_process import ScaleAug, CutOut, ToTensor
 from utils.loss import MySoftmaxCrossEntropyLoss
 # , DiceLoss, make_one_hot, focal_loss
 from utils.lovasz_losses import lovasz_softmax
-# from model.deeplabv3plus import DeeplabV3Plus
-from model.unet import UNet
+from model.deeplabv3plus import DeeplabV3Plus
+# from model.unet import UNet
 #from torchsummary import summary
 from config import Config
 
@@ -109,8 +109,8 @@ def main():
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
     val_data_batch = DataLoader(val_dataset, batch_size=1 * len(device_list), shuffle=False, drop_last=False, **kwargs)
-    # net = DeeplabV3Plus(lane_config)
-    net = UNet(n_classes=8)
+    net = DeeplabV3Plus(lane_config)
+    # net = UNet(n_classes=8)
     if torch.cuda.is_available():
         net = net.cuda(device=device_list[0])
         net = torch.nn.DataParallel(net, device_ids=device_list)
