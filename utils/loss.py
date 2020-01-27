@@ -163,7 +163,7 @@ class DiceLoss(nn.Module):
 
     def forward(self, predict, target):
         target = target.unsqueeze(1)
-        target = make_one_hot(target,8).cuda()
+        target = make_one_hot(target,8).cuda(device=7)
 
         assert predict.shape == target.shape, 'predict & target shape do not match'
         dice = BinaryDiceLoss(**self.kwargs)
