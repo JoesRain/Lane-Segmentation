@@ -8,7 +8,7 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss, focal_loss
+from utils.loss import MySoftmaxCrossEntropyLoss
 # , DiceLoss, make_one_hot, focal_loss
 #from utils.lovasz_losses import lovasz_softmax
 from model.deeplabv3plus import DeeplabV3Plus
@@ -20,7 +20,6 @@ from utils.grid import GridMask
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
 device_list = [6]
-
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     net.train()
@@ -41,6 +40,8 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # total_mask_loss += loss.item()
         total_mask_loss += mask_loss.item() / accumulation_steps
         mask_loss.backward()
+        torch.nn.utils.clip_grad_norm_(net.parameters(), 0.25)
+        #torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=20, norm_type=2)
         if ((i + 1) % accumulation_steps) == 0:
             optimizer.step()  # 反向传播，更新网络参数
             optimizer.zero_grad()  # 清空梯度
