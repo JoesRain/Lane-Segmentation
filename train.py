@@ -108,11 +108,11 @@ def main():
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
                                                                            ScaleAug(), ToTensor()]))
 
-    train_data_batch = DataLoader(train_dataset, batch_size=2 * len(device_list), shuffle=True, drop_last=True,
+    train_data_batch = DataLoader(train_dataset, batch_size=4 * len(device_list), shuffle=True, drop_last=True,
                                   **kwargs)
     val_dataset = LaneDataset("val.csv", transform=transforms.Compose([ToTensor()]))
 
-    val_data_batch = DataLoader(val_dataset, batch_size=1 * len(device_list), shuffle=False, drop_last=False, **kwargs)
+    val_data_batch = DataLoader(val_dataset, batch_size=2 * len(device_list), shuffle=False, drop_last=False, **kwargs)
     net = DeeplabV3Plus(lane_config)
     # net = UNet(n_classes=8)
     if torch.cuda.is_available():
