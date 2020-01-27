@@ -15,6 +15,7 @@ from model.deeplabv3plus import DeeplabV3Plus
 # from model.unet import UNet
 #from torchsummary import summary
 from config import Config
+from utils.grid import GridMask
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
@@ -27,11 +28,14 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     dataprocess = tqdm(dataLoader)
     # for batch_item in dataprocess:
     accumulation_steps = 8
+    grid = GridMask(96, 224, 360, 0.6, 1, 0.8)
     for i, (batch_item) in enumerate(dataprocess):
+        grid.set_prob(i, 200)
         image, mask = batch_item['image'], batch_item['mask']
         if torch.cuda.is_available():
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         # optimizer.zero_grad()
+        image = grid(image)
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         lovasz_value = lovasz_softmax(out, mask,classes='all')
@@ -102,7 +106,7 @@ def main():
     testF = open(os.path.join(lane_config.SAVE_PATH, "test.csv"), 'w')
     kwargs = {'num_workers': 4, 'pin_memory': True} if torch.cuda.is_available() else {}
     train_dataset = LaneDataset("train.csv", transform=transforms.Compose([ImageAug(), DeformAug(),
-                                                                           ScaleAug(), CutOut(32, 0.5), ToTensor()]))
+                                                                           ScaleAug(), ToTensor()]))
 
     train_data_batch = DataLoader(train_dataset, batch_size=2 * len(device_list), shuffle=True, drop_last=True,
                                   **kwargs)
