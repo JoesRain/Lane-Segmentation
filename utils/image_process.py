@@ -59,10 +59,8 @@ class ImageAug(object):
     def __call__(self, sample):
         image, mask = sample
         if np.random.uniform(0, 1) > 0.5:
-            seq = iaa.Sequential([iaa.OneOf([
-                iaa.AdditiveGaussianNoise(scale=(0, 0.2 * 255)),
-                iaa.Sharpen(alpha=(0.1, 0.3), lightness=(0.7, 1.3)),
-                iaa.GaussianBlur(sigma=(0, 1.0))])])
+            seq = iaa.Sequential([
+                iaa.Sharpen(alpha=(0.1, 0.3), lightness=(0.5, 1.3))])
             image = seq.augment_image(image)
         return image, mask
 

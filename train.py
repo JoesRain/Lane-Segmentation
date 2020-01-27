@@ -8,9 +8,9 @@ from torchvision import transforms
 from torch.utils.data import DataLoader
 from utils.image_process import LaneDataset, ImageAug, DeformAug
 from utils.image_process import ScaleAug, CutOut, ToTensor
-from utils.loss import MySoftmaxCrossEntropyLoss
+from utils.loss import MySoftmaxCrossEntropyLoss, focal_loss
 # , DiceLoss, make_one_hot, focal_loss
-from utils.lovasz_losses import lovasz_softmax
+#from utils.lovasz_losses import lovasz_softmax
 from model.deeplabv3plus import DeeplabV3Plus
 # from model.unet import UNet
 #from torchsummary import summary
@@ -19,7 +19,7 @@ from utils.grid import GridMask
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
-device_list = [0]
+device_list = [7]
 
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
@@ -28,7 +28,7 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
     dataprocess = tqdm(dataLoader)
     # for batch_item in dataprocess:
     accumulation_steps = 8
-    grid = GridMask(96, 224, 360, 0.6, 1, 0.8)
+    grid = GridMask(10, 30, 360, 0.6, 1, 0.8)
     for i, (batch_item) in enumerate(dataprocess):
         grid.set_prob(i, 200)
         image, mask = batch_item['image'], batch_item['mask']
@@ -38,8 +38,8 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         image = grid(image)
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        lovasz_value = lovasz_softmax(out, mask,classes='all')
-        loss = mask_loss + lovasz_value
+        focal_value = focal_loss(out, mask)
+        loss = mask_loss + focal_value
         # total_mask_loss += loss.item()
         total_mask_loss += loss.item() / accumulation_steps
         loss.backward()
@@ -49,8 +49,8 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.step()
         dataprocess.set_description_str("epoch:{}".format(epoch))
         dataprocess.set_postfix_str("mask_loss:{:.4f}".format(mask_loss.item()))
-    trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
-    trainF.flush()
+        trainF.write("Epoch:{}, mask loss is {:.4f} \n".format(epoch, total_mask_loss / len(dataLoader)))
+        trainF.flush()
 
 
 def test(net, epoch, dataLoader, testF, config):
@@ -64,9 +64,8 @@ def test(net, epoch, dataLoader, testF, config):
             image, mask = image.cuda(device=device_list[0]), mask.cuda(device=device_list[0])
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        # dice_loss = DiceLoss()(out,mask)
-        lovasz_value = lovasz_softmax(out, mask,classes='all')
-        loss = mask_loss + lovasz_value
+        focal_value = focal_loss(out, mask)
+        loss = mask_loss + focal_value
         # total_mask_loss += mask_loss.item()
         total_mask_loss += loss.detach().item()
     pred = torch.argmax(F.softmax(out, dim=1), dim=1)
