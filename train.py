@@ -19,7 +19,7 @@ from utils.grid import GridMask
 
 # os.environ["CUDA_VISIBLE_DEVICES"] = "7"
 
-device_list = [7]
+device_list = [4]
 
 
 def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
