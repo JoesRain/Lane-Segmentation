@@ -34,7 +34,7 @@ def train_epoch(net, epoch, dataLoader, optimizer, trainF, config):
         # optimizer.zero_grad()
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
-        lovasz_value = lovasz_softmax(out, mask)
+        lovasz_value = lovasz_softmax(out, mask,classes='all')
         loss = mask_loss + lovasz_value
         # total_mask_loss += loss.item()
         total_mask_loss += loss.item() / accumulation_steps
@@ -61,7 +61,7 @@ def test(net, epoch, dataLoader, testF, config):
         out = net(image)
         mask_loss = MySoftmaxCrossEntropyLoss(nbclasses=config.NUM_CLASSES)(out, mask)
         # dice_loss = DiceLoss()(out,mask)
-        lovasz_value = lovasz_softmax(out, mask)
+        lovasz_value = lovasz_softmax(out, mask,classes='all')
         loss = mask_loss + lovasz_value
         # total_mask_loss += mask_loss.item()
         total_mask_loss += loss.detach().item()
